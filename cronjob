@@ -1,0 +1,4 @@
+*/5 * * * * sudo -u media /opt/batch_move.sh
+*/2 * * * * sudo -u media /opt/convert_tv.sh
+*/2 * * * * sudo -u media /opt/convert_movie.sh
+
