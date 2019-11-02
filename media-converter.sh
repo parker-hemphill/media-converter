@@ -19,11 +19,7 @@ then
   chown media:media /torrent
   echo "Created /torrent" >> $log
 else
-  if [[ $(test -w /torrent) ]]; then
-    echo "/torrent is owned by user/group $(ls -l -d /torrent|awk '{print $3":"$4}') and writeable by $PUID" >> $log
-  else
-    echo "/torrent is owned by user/group $(ls -l -d /torrent|awk '{print $3":"$4}') but NOT writeable by $PUID" >> $log
-  fi
+  echo "/torrent is owned by user/group $(ls -l -d /torrent|awk '{print $3":"$4}')" >> $log
 fi
 
 for folder in Logs Unsorted Complete Download
@@ -34,11 +30,7 @@ do
     chown media:media /torrent/$folder
     echo "Created /torrent/$folder" >> $log
   else
-    if [[ $(test -w /torrent/$folder) ]]; then
-      echo "/torrent/$folder is owned by user/group $(ls -l -d /torrent/$folder|awk '{print $3":"$4}') and writeable by $PUID" >> $log
-    else
-      echo "/torrent/$folder is owned by user/group $(ls -l -d /torrent/$folder|awk '{print $3":"$4}') but NOT writeable by $PUID" >> $log
-    fi
+    echo "/torrent/$folder is owned by user/group $(ls -l -d /torrent/$folder|awk '{print $3":"$4}')" >> $log
   fi
 done
 
@@ -50,11 +42,7 @@ do
     chown media:media /torrent/Complete/$folder
     echo "Created /torrent/Complete/$folder" >> $log
   else
-    if [[ $(test -w /torrent/Complete/$folder) ]]; then
-      echo "/torrent/Complete/$folder is owned by user/group $(ls -l -d /torrent/Complete/$folder|awk '{print $3":"$4}') and writeable by $PUID" >> $log
-    else
-      echo "/torrent/Complete/$folder is owned by user/group $(ls -l -d /torrent/Complete/$folder|awk '{print $3":"$4}') but NOT writeable by $PUID" >> $log
-    fi
+    echo "/torrent/Complete/$folder is owned by user/group $(ls -l -d /torrent/Complete/$folder|awk '{print $3":"$4}')" >> $log
   fi
 done
 
@@ -68,11 +56,7 @@ do
       chown media:media /torrent/Complete/$folder/$media_folder
       echo "Created /torrent/Complete/$folder/$media_folder" >> $log
     else
-      if [[ $(test -w /torrent/Complete/$folder/$media_folder) ]]; then
-        echo "/torrent/Complete/$folder/$media_folder is owned by user/group $(ls -l -d /torrent/Complete/$folder/$media_folder|awk '{print $3":"$4}') and writeable by $PUID" >> $log
-      else
-        echo "/torrent/Complete/$folder/$media_folder is owned by user/group $(ls -l -d /torrent/Complete/$folder/$media_folder|awk '{print $3":"$4}') but NOT writeable by $PUID" >> $log
-      fi
+      echo "/torrent/Complete/$folder/$media_folder is owned by user/group $(ls -l -d /torrent/Complete/$folder/$media_folder|awk '{print $3":"$4}')" >> $log
     fi
   done
 done
