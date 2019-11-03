@@ -53,7 +53,7 @@ docker run -d \
 * Shell access while the container is running:
  `docker exec -it media_converter /bin/bash`
 * To check the logs of the container and directory creation:
- `docker exec -it media_converter cat /tmp/media-converter.log`
+ `docker exec -it media_converter cat /tmp/media_converter.log`
 * Container version number:
  `docker inspect -f '{{ index .Config.Labels "build_version" }}' media_converter`
 * Image version number
