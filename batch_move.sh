@@ -1,9 +1,10 @@
 #!/bin/bash
-
-pidfile=/var/tmp/batch_move.pid
-if [ -f $pidfile ]
+IFS=$'\n'
+#Check if script is running already.  This prevents multiple encode jobs from running since this script is designed to run manually or invoked from crontab.
+PIDFILE=/var/tmp/encode_move.pid
+if [ -f $PIDFILE ]
 then
-  PID=$(cat $pidfile)
+  PID=$(cat $PIDFILE)
   ps -p $PID > /dev/null 2>&1
   if [ $? -eq 0 ]
   then
@@ -11,7 +12,7 @@ then
     exit 1
   else
     ## Process not found assume not running
-    echo $$ > $pidfile
+    echo $$ > $PIDFILE
     if [ $? -ne 0 ]
     then
       echo "Could not create PID file"
@@ -19,7 +20,7 @@ then
     fi
   fi
 else
-  echo $$ > $pidfile
+  echo $$ > $PIDFILE
   if [ $? -ne 0 ]
   then
     echo "Could not create PID file"
@@ -27,15 +28,22 @@ else
   fi
 fi
 
-# Variables
-TV_ADD=/torrent/Complete/TVShows
-MOVIE_ADD=/torrent/Complete/Movies
-TV_CONVERT=/torrent/Complete/Convert/TVShows
-MOVIE_CONVERT=/torrent/Complete/Convert/Movies
+if [ -f "$HOME/.bashrc" ]; then
+ . "$HOME/.profile"
+fi
 
-#This ignores files that might be sample media files and small files which are probably also sample files
-find "$TV_ADD" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv "{}" "$TV_CONVERT" \;
-find "$MOVIE_ADD" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv "{}" "$MOVIE_CONVERT" \;
+#Set variables to point to directories for file locations
+MOVIE_ADD="/torrent/Complete/Movies" #This is where your download client should place COMPLETED downloads of movies
+TV_ADD="/torrent/Complete/TVShows" #This is where your download client should place COMPLETED downloads of TV shows
 
-rm -rfv $TV_ADD/*
-rm -rfv $MOVIE_ADD/*
+MOVIE_CONVERT="/torrent/Complete/Convert/Movies" #This is where media files are stripped from completed directory and encoded by this script
+TV_CONVERT="/torrent/Complete/Convert/TVShows" 
+
+#This clears any files that might be sample media files
+find "$TV_ADD" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv "{}" "$TV_CONVERT/" \;
+find "$MOVIE_ADD" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv "{}" "$MOVIE_CONVERT/" \;
+
+find "$TV_ADD/" -mindepth 1 -delete
+find "$MOVIE_ADD/" -mindepth 1 -delete
+
+rm "$PIDFILE"
