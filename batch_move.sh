@@ -37,7 +37,5 @@ MOVIE_CONVERT=/torrent/Complete/Convert/Movies
 find "$TV_ADD" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv "{}" "$TV_CONVERT" \;
 find "$MOVIE_ADD" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv "{}" "$MOVIE_CONVERT" \;
 
-find $TV_ADD -type f -exec rm {} \;
-find $TV_ADD -type d -exec rm {} \;
-find $MOVIE_ADD -type f -exec rm {} \;
-find $MOVIE_ADD -type d -exec rm {} \;
+rm -rfv $TV_ADD/*
+rm -rfv $MOVIE_ADD/*
