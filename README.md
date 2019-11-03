@@ -13,6 +13,7 @@
 * 3: Completed file is moved to `'<volume>/Complete/IMPORT/TVShows'`, ready to be ingested by SickChill, etc. into Plex library
   
 ### Notes:
+* All files converted are added to a logfile located at **'\<volume\>/Logs/converted.log'**
 * Upon start-up container will check '<volume>' and create the needed directories if they don't exist
 * Container defaults to uid/gid 1000 if PUID/PGID aren't specified in the environment settings
 * The easiest way to get up and running is to start the image, then go into the setup of your download client (SickChill, etc) and set it to place completed media in '<volume>/Complete/TVShows'
@@ -26,10 +27,10 @@
 #docker-compose.yaml
 version: '2.0'
 services:
-  parker-media_converter:
+  media-converter:
     container_name: media_converter
     restart: unless-stopped
-    image: parker-media_converter:latest
+    image: parkerhemphill/media-converter:latest
     volumes:
       # Directory on server:Directory inside container.  You shouldn't change the right side of the semi-colon
       - /media/torrent:/torrent
@@ -47,14 +48,14 @@ docker run -d \
   -e PGID=1000 \
   -v /media/torrent:/torrent \
   --restart unless-stopped \
-  parker-media_converter:latest
+  parkerhemphill/media-converter:latest
 ```
 ## Support
 * Shell access while the container is running:
- `docker exec -it media_converter /bin/bash`
+ `docker exec -it media-converter /bin/bash`
 * To check the logs of the container and directory creation:
- `docker exec -it media_converter cat /tmp/media_converter.log`
+ `docker exec -it media-converter cat /tmp/media-converter.log`
 * Container version number:
- `docker inspect -f '{{ index .Config.Labels "build_version" }}' media_converter`
+ `docker inspect -f '{{ index .Config.Labels "build_version" }}' media-converter`
 * Image version number
- `docker inspect -f '{{ index .Config.Labels "build_version" }}' parker-media_converter`
+ `docker inspect -f '{{ index .Config.Labels "build_version" }}' parkerhemphill/media-converter`
