@@ -1,33 +1,39 @@
 #!/bin/bash
+FIND=/usr/bin/find
+CAT=/bin/cat
+RM=/bin/rm
+MV=/bin/mv
+ECHO=/bin/echo
+
 #Check if script is running already.  This prevents multiple encode jobs from running since this script is designed to run manually or invoked from crontab.
 PIDFILE=/var/tmp/encode_move.pid
 if [ -f $PIDFILE ]
 then
-  PID=$(cat $PIDFILE)
+  PID=$($CAT $PIDFILE)
   ps -p $PID > /dev/null 2>&1
   if [ $? -eq 0 ]
   then
-    echo "Process already running"
+    $ECHO "Process already running"
     exit 1
   else
     ## Process not found assume not running
-    echo $$ > $PIDFILE
+    $ECHO $$ > $PIDFILE
     if [ $? -ne 0 ]
     then
-      echo "Could not create PID file"
+      $ECHO "Could not create PID file"
       exit 1
     fi
   fi
 else
-  echo $$ > $PIDFILE
+  $ECHO $$ > $PIDFILE
   if [ $? -ne 0 ]
   then
-    echo "Could not create PID file"
+    $ECHO "Could not create PID file"
     exit 1
   fi
 fi
 
-#Set variables to point to directories for file locations
+#Set variables to point to directories for file lo$CATions
 MOVIE_ADD="/torrent/Complete/Movies" #This is where your download client should place COMPLETED downloads of movies
 TV_ADD="/torrent/Complete/TVShows" #This is where your download client should place COMPLETED downloads of TV shows
 
@@ -35,8 +41,8 @@ MOVIE_CONVERT="/torrent/Complete/Convert/Movies" #This is where media files are 
 TV_CONVERT="/torrent/Complete/Convert/TVShows" 
 
 #This clears any files that might be sample media files
-find "$TV_ADD" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} $TV_CONVERT/ \;
-find "$MOVIE_ADD" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} $MOVIE_CONVERT/ \;
+$FIND "$TV_ADD" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec $MV {} $TV_CONVERT/ \;
+$FIND "$MOVIE_ADD" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec $MV {} $MOVIE_CONVERT/ \;
 
-find $TV_ADD/ -ctime +7 -exec rm -rf {} +
-find $MOVIE_ADD/ -ctime +7 -exec rm -rf {} +
+$FIND $TV_ADD/ -ctime +7 -exec $RM -rf {} +
+$FIND $MOVIE_ADD/ -ctime +7 -exec $RM -rf {} +
