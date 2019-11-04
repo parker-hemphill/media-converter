@@ -7,7 +7,7 @@ LABEL maintainer=parker-hemphill
 
 RUN echo "**** install build packages ****"; \
 apt-get update; \
-apt-get --no-install-recommends -qq -y install mediainfo ffmpeg handbrake-cli sudo cron; \
+apt-get --no-install-recommends -qq -y install mediainfo ffmpeg handbrake-cli sudo cron procps; \
 apt autoremove
 
 # Copy convert shell scripts to /opt

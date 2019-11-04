@@ -1,6 +1,6 @@
 # parker-media_converter
 ## A simple docker image that uses FFMPEG, media-info, and HandBrakeCLI to convert downloaded media into mp4
-[![Docker Stars](https://img.shields.io/docker/stars/parkerhemphill/media-converter.svg?maxAge=604800)](https://store.docker.com/community/images/parkerhemphill/media-converter) [![Docker Pulls](https://img.shields.io/docker/pulls/parkerhemphill/media-converter.svg?maxAge=604800)](https://store.docker.com/community/images/parkerhemphill/media-converter)
+[![Docker Stars](https://img.shields.io/docker/stars/parkerhemphill/media-converter?maxAge=604800)](https://store.docker.com/community/images/parkerhemphill/media-converter) [![Docker Pulls](https://img.shields.io/docker/pulls/parkerhemphill/media-converter?maxAge=604800)](https://store.docker.com/community/images/parkerhemphill/media-converter)
 ### Flow of operations (For TVShows but is identical for Movies, minus the different directory):
 * 1: Download client places files in `'<volume>/Complete/TVShows'`
   * Crontab runs every five minutes to move completed files from `'<volume>/Complete/TVShows'` to `'<volume>/Complete/Convert/TVShows'`
