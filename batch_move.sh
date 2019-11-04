@@ -1,5 +1,4 @@
 #!/bin/bash
-IFS=$'\n'
 #Check if script is running already.  This prevents multiple encode jobs from running since this script is designed to run manually or invoked from crontab.
 PIDFILE=/var/tmp/encode_move.pid
 if [ -f $PIDFILE ]
@@ -28,10 +27,6 @@ else
   fi
 fi
 
-if [ -f "$HOME/.bashrc" ]; then
- . "$HOME/.profile"
-fi
-
 #Set variables to point to directories for file locations
 MOVIE_ADD="/torrent/Complete/Movies" #This is where your download client should place COMPLETED downloads of movies
 TV_ADD="/torrent/Complete/TVShows" #This is where your download client should place COMPLETED downloads of TV shows
@@ -45,5 +40,3 @@ find "$MOVIE_ADD" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|m
 
 find $TV_ADD/ -ctime +7 -exec rm -rf {} +
 find $MOVIE_ADD/ -ctime +7 -exec rm -rf {} +
-
-rm "$PIDFILE"

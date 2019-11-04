@@ -8,7 +8,7 @@ cat /dev/null > $log
 # Add "media" user and group, and map them to provided UID/GID or 1000 if not provided
 # User will show as "media" inside container but will map to the correct UID outside container
 groupadd -g $PGID media
-useradd -u $PUID -g media media
+useradd -m -u $PUID -g media media
 echo "\"media\" user is mapped to external UID $(id -u media)"
 echo "\"media\" group is mapped to external GID $(id -g media)"
 
