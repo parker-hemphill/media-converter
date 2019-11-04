@@ -2,7 +2,7 @@
 FROM debian:latest
 
 # set version label
-LABEL build_version="Parker Media-Convertor version:- 1.0 Build-date:- 2-Nov-2019"
+LABEL build_version="Parker Media-Convertor version:- 1.1 Build-date:- 4-Nov-2019"
 LABEL maintainer=parker-hemphill
 
 RUN echo "**** install build packages ****"; \
