@@ -40,10 +40,10 @@ MOVIE_CONVERT="/torrent/Complete/Convert/Movies" #This is where media files are 
 TV_CONVERT="/torrent/Complete/Convert/TVShows" 
 
 #This clears any files that might be sample media files
-find "$TV_ADD" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv "{}" "$TV_CONVERT/" \;
-find "$MOVIE_ADD" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv "{}" "$MOVIE_CONVERT/" \;
+find "$TV_ADD" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} $TV_CONVERT/ \;
+find "$MOVIE_ADD" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} $MOVIE_CONVERT/ \;
 
-find "$TV_ADD/" -mindepth 1 -delete
-find "$MOVIE_ADD/" -mindepth 1 -delete
+find $TV_ADD/ -ctime +7 -exec rm -rf {} +
+find $MOVIE_ADD/ -ctime +7 -exec rm -rf {} +
 
 rm "$PIDFILE"
