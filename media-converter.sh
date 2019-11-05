@@ -65,4 +65,4 @@ do
 done
 
 # Run infinite loop to move media to convert directory and then run media conversion before sleeping for 2 minutes before checking for media again
-sudo -u media bash -c 'while :; do /opt/batch_move.sh; /opt/convert_movie.sh; /opt/convert_tv.sh; sleep 120; done'
+sudo -u media bash -c 'while :; do /opt/batch_move.sh; sleep 5; /opt/convert_tv.sh; /opt/convert_movie.sh; sleep 25; done'
