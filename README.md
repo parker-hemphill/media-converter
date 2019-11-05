@@ -25,29 +25,32 @@
 
 ## Docker-compose example
 * In this example I use `'/media/torrent'` as the mount point on my server and UID "1000" to map my primary user to the container.  You can get the UID/GID of desired user by running `id <USER_NAME>`.  I.E. `id plex`
+* Change "TZ" to match your desired timezone.  A vaild list can be found at https://www.wikiwand.com/en/List_of_tz_database_time_zones under the "TZ database name" column.  Default is "America/New_York"
 ```
 #docker-compose.yaml
-version: '2.0'
+version: "2"
 services:
-  media-converter:
-    container_name: media-converter
-    restart: unless-stopped
+  deluge:
     image: parkerhemphill/media-converter:latest
-    volumes:
-      # Directory on server:Directory inside container
-      - /media/torrent:/torrent
+    container_name: media-converter
+    network_mode: host
     environment:
-      # UID and GID to map container "media" user to
-      - PGID=1000
       - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - /media/torrent:/torrent
+    restart: unless-stopped
 ```
 ## Docker run example
 * In this example I use `'/media/torrent'` as the mount point on my server and UID "1000" to map my primary user to the container.  You can get the needed UID/GID by running `id <USER_NAME>`.  I.E. `id plex`
+* Change "TZ" to match your desired timezone.  A vaild list can be found at https://www.wikiwand.com/en/List_of_tz_database_time_zones under the "TZ database name" column.  Default is "America/New_York"
 ```
 docker run -d \
   --name=media-converter \
   -e PUID=1000 \
   -e PGID=1000 \
+  -e TZ=America/New_York \
   -v /media/torrent:/torrent \
   --restart unless-stopped \
   parkerhemphill/media-converter:latest
