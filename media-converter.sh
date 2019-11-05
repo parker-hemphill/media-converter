@@ -1,5 +1,6 @@
 #!/bin/bash
 # Location to create log file
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 log=/tmp/media-converter.log
 
 # Clear log file
@@ -63,5 +64,6 @@ done
 
 # Install the crontab to look for media files to convert evert 2 minutes
 # The tail is needed to keep the docker container running
-sudo -u media cron /etc/crontabs/media
+chown media:media /etc/crontabs/media
+cron /etc/crontabs/media
 tail -f /var/log/cron.log

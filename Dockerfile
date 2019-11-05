@@ -1,5 +1,5 @@
 #Download base image ubuntu
-FROM debian:latest
+FROM ubuntu:latest
 
 # set version label
 LABEL build_version="Parker Media-Convertor version:- 1.1 Build-date:- 4-Nov-2019"
@@ -32,7 +32,7 @@ RUN touch /var/log/cron.log
 #VOLUME /torrent
 
 RUN echo "**** setup torrent directories and cron tab****"
-#RUN crontab /etc/crontabs/root
+RUN crontab /etc/crontabs/media
 ENV PUID=${PUID:-1000}
 ENV PGID=${PGID:-1000}
 

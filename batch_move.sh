@@ -1,4 +1,5 @@
 #!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 FIND=/usr/bin/find
 CAT=/bin/cat
 RM=/bin/rm

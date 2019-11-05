@@ -1,5 +1,5 @@
 #!/bin/bash
-
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 pidfile=/var/tmp/encode_tv.pid
 if [ -f $pidfile ]
 then
