@@ -1,3 +1,0 @@
-*/1 * * * * /opt/convert_tv.sh
-*/2 * * * * /opt/convert_movie.sh
-*/3 * * * * /opt/batch_move.sh

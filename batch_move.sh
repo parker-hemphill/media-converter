@@ -7,7 +7,7 @@ MV=/bin/mv
 ECHO=/bin/echo
 PS=/bin/ps
 
-#Check if script is running already.  This prevents multiple encode jobs from running since this script is designed to run manually or invoked from crontab.
+#Check if script is running already
 PIDFILE=/var/tmp/encode_move.pid
 if [ -f $PIDFILE ]
 then
@@ -18,7 +18,7 @@ then
     $ECHO "Process already running"
     exit 1
   else
-    ## Process not found assume not running
+    # Process not found assume not running
     $ECHO $$ > $PIDFILE
     if [ $? -ne 0 ]
     then
