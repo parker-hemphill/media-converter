@@ -67,4 +67,4 @@ done
 chown media:media /etc/crontabs/media
 sudo -u media crontab /etc/crontabs/media
 sudo -u media cron /etc/crontabs/media
-tail -f /var/log/cron.log
+sudo -u while :; do /opt/batch_move.sh; /opt/convert_movie.sh; /opt/convert_tv.sh; sleep 120; done
