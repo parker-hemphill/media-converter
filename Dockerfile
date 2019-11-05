@@ -16,7 +16,7 @@ COPY convert_movie.sh /opt
 COPY convert_tv.sh /opt
 COPY batch_move.sh /opt
 COPY media-converter.sh /opt
-COPY cronjob /etc/crontabs/root
+COPY cronjob /etc/crontabs/media
 
 # Set scripts as executable
 RUN echo "**** set shell scripts as executable ****"; \
@@ -32,7 +32,7 @@ RUN touch /var/log/cron.log
 #VOLUME /torrent
 
 RUN echo "**** setup torrent directories and cron tab****"
-RUN crontab /etc/crontabs/root
+#RUN crontab /etc/crontabs/root
 ENV PUID=${PUID:-1000}
 ENV PGID=${PGID:-1000}
 

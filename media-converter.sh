@@ -8,7 +8,7 @@ cat /dev/null > $log
 # Add "media" user and group, and map them to provided UID/GID or 1000 if not provided
 # User will show as "media" inside container but will map to the correct UID outside container
 groupadd -g $PGID media
-useradd -m -u $PUID -g media media
+useradd -s /bin/bash -m -u $PUID -g media media
 echo "\"media\" user is mapped to external UID $(id -u media)"
 echo "\"media\" group is mapped to external GID $(id -g media)"
 
@@ -63,4 +63,5 @@ done
 
 # Install the crontab to look for media files to convert evert 2 minutes
 # The tail is needed to keep the docker container running
-cron /etc/crontabs/root && tail -f /var/log/cron.log
+sudo -u media cron /etc/crontabs/media
+tail -f /var/log/cron.log
