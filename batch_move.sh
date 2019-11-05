@@ -4,13 +4,14 @@ CAT=/bin/cat
 RM=/bin/rm
 MV=/bin/mv
 ECHO=/bin/echo
+PS=/bin/ps
 
 #Check if script is running already.  This prevents multiple encode jobs from running since this script is designed to run manually or invoked from crontab.
 PIDFILE=/var/tmp/encode_move.pid
 if [ -f $PIDFILE ]
 then
   PID=$($CAT $PIDFILE)
-  ps -p $PID > /dev/null 2>&1
+  $PS -p $PID > /dev/null 2>&1
   if [ $? -eq 0 ]
   then
     $ECHO "Process already running"
@@ -34,11 +35,11 @@ else
 fi
 
 #Set variables to point to directories for file lo$CATions
-MOVIE_ADD="/torrent/Complete/Movies" #This is where your download client should place COMPLETED downloads of movies
-TV_ADD="/torrent/Complete/TVShows" #This is where your download client should place COMPLETED downloads of TV shows
+MOVIE_ADD="/torrent/Complete/Movies"
+TV_ADD="/torrent/Complete/TVShows"
 
-MOVIE_CONVERT="/torrent/Complete/Convert/Movies" #This is where media files are stripped from completed directory and encoded by this script
-TV_CONVERT="/torrent/Complete/Convert/TVShows" 
+MOVIE_CONVERT="/torrent/Complete/Convert/Movies"
+TV_CONVERT="/torrent/Complete/Convert/TVShows"
 
 #This clears any files that might be sample media files
 $FIND "$TV_ADD" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec $MV {} $TV_CONVERT/ \;

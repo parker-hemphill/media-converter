@@ -29,7 +29,7 @@ chmod +rxxx /opt/media-converter.sh
 RUN touch /var/log/cron.log
 
 # Setup /torrent directories
-VOLUME /torrent
+#VOLUME /torrent
 
 RUN echo "**** setup torrent directories and cron tab****"
 RUN crontab /etc/crontabs/root
