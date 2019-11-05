@@ -19,9 +19,9 @@
 * The easiest way to get up and running is to start the image, then go into the setup of your download client (SickChill/Deluge, etc) and set it to place completed media in `'<volume>/Complete/<TVShows|Movies>'`
 * Set `'<volume>/Complete/IMPORT/<TVShows|Movies>'` as the *import* directory for your download client (SickChill, etc)
 * EXAMPLE: You'd set your download client to place completed files in `'/media/torrent/Complete/<TVShows|Movies>'`, where they'll be grabbed and converted, then moved into `'/media/torrent/Complete/IMPORT/<TVShows|Movies>'` for your media manager to import to the Plex/Jellyfin/Kodi library
-* Inside the docker container all paths are under **/torrent**, outside the container paths are relative to `'<volume>'`
- * On server: /media/torrent
- * Inside container: /torrent
+* Inside the docker container all paths are under `'/torrent'`, outside the container paths are relative to `'<volume>'`
+ * On server: `'/media/torrent'`
+ * Inside container: `'/torrent'`
 
 ## Docker-compose example
 * In this example I use `'/media/torrent'` as the mount point on my server and UID "1000" to map my primary user to the container.  You can get the UID/GID of desired user by running `id <USER_NAME>`.  I.E. `id plex`
@@ -30,7 +30,7 @@
 version: '2.0'
 services:
   media-converter:
-    container_name: media_converter
+    container_name: media-converter
     restart: unless-stopped
     image: parkerhemphill/media-converter:latest
     volumes:
@@ -45,7 +45,7 @@ services:
 * In this example I use `'/media/torrent'` as the mount point on my server and UID "1000" to map my primary user to the container.  You can get the needed UID/GID by running `id <USER_NAME>`.  I.E. `id plex`
 ```
 docker run -d \
-  --name=media_converter \
+  --name=media-converter \
   -e PUID=1000 \
   -e PGID=1000 \
   -v /media/torrent:/torrent \
