@@ -28,11 +28,7 @@ chmod +rxxx /opt/media-converter.sh
 # Create the log file to be able to run tail
 RUN touch /var/log/cron.log
 
-# Setup /torrent directories
-#VOLUME /torrent
-
 RUN echo "**** setup torrent directories and cron tab****"
-RUN crontab /etc/crontabs/media
 ENV PUID=${PUID:-1000}
 ENV PGID=${PGID:-1000}
 

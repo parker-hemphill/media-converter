@@ -65,5 +65,6 @@ done
 # Install the crontab to look for media files to convert evert 2 minutes
 # The tail is needed to keep the docker container running
 chown media:media /etc/crontabs/media
-cron /etc/crontabs/media
+sudo -u media crontab /etc/crontabs/media
+sudo -u media cron /etc/crontabs/media
 tail -f /var/log/cron.log
