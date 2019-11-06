@@ -65,4 +65,12 @@ do
 done
 
 # Run infinite loop to move media to convert directory and then run media conversion before sleeping for 2 minutes before checking for media again
-sudo -u media bash -c 'while :; do /opt/batch_move.sh; sleep 5; /opt/convert_tv.sh; /opt/convert_movie.sh; sleep 25; done'
+if [[ $ENCODE == "x264" ]]; then
+  echo -e "\nUsing h264 codec for HandbrakeCLI" >> $log
+  sudo -u media bash -c 'while :; do /opt/batch_move.sh; sleep 5; /opt/convert_tv.sh x264; /opt/convert_movie.sh x264; sleep 25; done'
+elif [[ $ENCODE == "x265" ]]; then
+  echo -e "\nUsing h265 codec for HandbrakeCLI" >> $log
+  sudo -u media bash -c 'while :; do /opt/batch_move.sh; sleep 5; /opt/convert_tv.sh x265; /opt/convert_movie.sh x265; sleep 25; done'
+else
+  echo "Invalid encoder, choose either \"x264\" or \"x265\" in docker variables" >> $log
+fi

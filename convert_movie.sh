@@ -1,5 +1,5 @@
 #!/bin/bash
-
+ENCODE=$1
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 pidfile=/var/tmp/encode_movie.pid
 
@@ -29,7 +29,7 @@ fi
 handbrake="/usr/bin/HandBrakeCLI" #Location of HandBrakeCLI
 mediainfo="/usr/bin/mediainfo" #Location of mediainfo
 ffmpeg="/usr/bin/ffmpeg" #Location of ffmpeg
-handbrake_options=" --markers --encoder x264 --encopts vbv-maxrate=25000:vbv-bufsize=31250:ratetol=inf --crop 0:0:0:0"
+handbrake_options=" --markers --encoder $ENCODE --encopts vbv-maxrate=25000:vbv-bufsize=31250:ratetol=inf --crop 0:0:0:0"
 media_add="/torrent/Complete/Movies" #This is where your download client should place COMPLETED downloads of movies
 media_convert="/torrent/Complete/Convert/Movies" #This is where completed downloads are moved to be processed 
 media_import="/torrent/Complete/IMPORT/Movies" #This is the directory to point Sonarr, Sickrage, etc to as the post-processing directory or "completed downloads"
@@ -138,7 +138,7 @@ if [ "$frame_rate" == '29.970' ]; then
   handbrake_options="$handbrake_options --detelecine"
 fi
 
-$handbrake $handbrake_options --input "$input" --output "$output" 2>&1 | tee -a "/tmp/converted_tv"
+$handbrake $handbrake_options --input "$input" --output "$output" 2>&1 | tee -a "/tmp/converted_movie"
 
 if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
   STOP_TIME=$(date +%s)

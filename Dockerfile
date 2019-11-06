@@ -2,7 +2,7 @@
 FROM ubuntu:latest
 
 # set version label
-LABEL build_version="Media-Converter, Version: 1.2.1, Build-date: 5-Nov-2019"
+LABEL build_version="Media-Converter, Version: 1.2.2, Build-date: 6-Nov-2019"
 LABEL maintainer=parker-hemphill
 
 RUN echo "**** install build packages ****"; \
@@ -29,6 +29,7 @@ RUN echo "**** setup default variables****"
 ENV PUID=${PUID:-1000}
 ENV PGID=${PGID:-1000}
 ENV TZ=${TZ:-America/New_York}
+ENV ENCODE=${ENCODE:-x264}
 
 # Run the command on container startup
 ENTRYPOINT ["/opt/media-converter.sh"]
