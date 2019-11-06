@@ -4,7 +4,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/parkerhemphill/media-converter)](https://store.docker.com/community/images/parkerhemphill/media-converter)
 ### Flow of operations:
 * 1: Download client places files in `'<volume>/Complete/<TVShows|Movies>'`
-  * ~~Crontab runs every five minutes to move completed files from~~ Crontab was unreliable so instead we use an infinite loop to perform the move and convert actions with a wait of 2 minutes between checks.  First action is to move:  `'<volume>/Complete/<TVShows|Movies>'` to `'<volume>/Complete/Convert/<TVShows|Movies>'`
+  * ~~Crontab runs every five minutes to move completed files from~~ Crontab was unreliable so instead we use an infinite loop to perform the move and convert actions with a wait of 30 seconds between checks.  First action is to move:  `'<volume>/Complete/<TVShows|Movies>'` to `'<volume>/Complete/Convert/<TVShows|Movies>'`
 * 2: Files are converted
   * ~~Crontab runs every two minutes to convert media files in~~ Loop checks for media to convert in `'<volume>/Complete/Convert/<TVShows|Movies>'`
   * If file is an 'mkv' file *ffmpeg* converts into an 'mp4' file for conversion and removes 'mkv' file
