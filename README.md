@@ -1,6 +1,6 @@
 # parkerhemphill/media-converter
 ## A simple docker image that uses FFMPEG, media-info, and HandBrakeCLI to convert downloaded media into mp4
-[![Docker Stars](https://img.shields.io/docker/stars/parkerhemphill/media-converter?maxAge=604800)](https://store.docker.com/community/images/parkerhemphill/media-converter) 
+[![Docker Stars](https://img.shields.io/docker/stars/parkerhemphill/media-converter)](https://store.docker.com/community/images/parkerhemphill/media-converter) 
 [![Docker Pulls](https://img.shields.io/docker/pulls/parkerhemphill/media-converter)](https://store.docker.com/community/images/parkerhemphill/media-converter)
 ### Flow of operations:
 * 1: Download client places files in `'<volume>/Complete/<TVShows|Movies>'`
