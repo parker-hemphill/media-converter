@@ -147,11 +147,12 @@ if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
   output_size=$(ls -lh "${output}"|awk '{print $5}')
   mv "$output" "$media_import"
   rm "$input"
+  log_input=$(echo "$input"|sed 's/\/torrent\/Complete\/Convert\///')
   if [[ ! -f $log ]]; then
     echo "[Type ] [  Date  ] [  Convert Time  ] [  Original Filesize|Converted Filesize  ] Filename" >> $log
-    echo "[Movie] [$(date "+%D %H:%M")] [$(date -d@$TOTAL_TIME -u +%H:%M:%S)] [${input_size}|${output_size}] $input" >> $log
+    echo "[Movie] [$(date "+%D %H:%M")] [$(date -d@$TOTAL_TIME -u +%H:%M:%S)] [${input_size}|${output_size}] $log_input" >> $log
   else
-    echo "[Movie] [$(date "+%D %H:%M")] [$(date -d@$TOTAL_TIME -u +%H:%M:%S)] [${input_size}|${output_size}] $input" >> $log
+    echo "[Movie] [$(date "+%D %H:%M")] [$(date -d@$TOTAL_TIME -u +%H:%M:%S)] [${input_size}|${output_size}] $log_input" >> $log
   fi
 else
   rm "$output" > /dev/null 2>&1
