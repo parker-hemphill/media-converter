@@ -138,7 +138,7 @@ if [ "$frame_rate" == '29.970' ]; then
   handbrake_options="$handbrake_options --detelecine"
 fi
 
-$handbrake $handbrake_options --input "$input" --output "$output" 2>&1 | tee -a "/tmp/converted_movie"
+$handbrake $handbrake_options --input "$input" --output "$output" 2>&1 | tee -a "/tmp/converted_media"
 
 if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
   STOP_TIME=$(date +%s)

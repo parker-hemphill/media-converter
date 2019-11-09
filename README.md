@@ -66,9 +66,11 @@ docker run -d \
  `docker exec -it media-converter /bin/bash`
 * To check the logs of the container and directory creation:<br>
  `docker exec -it media-converter cat /tmp/media-converter.log`
-* To see converted media:<br>
+* To see log of converted media:<br>
  `docker exec -it media-converter cat /torrent/Logs/converted.log` 
+* Monitor currently encoding media:<br>
+ `docker exec -it media-converter tail -f /tmp/converted_media`
 * Container version number:<br>
  `docker inspect -f '{{ index .Config.Labels "build_version" }}' media-converter`
-* Image version number<br>
+* Image version number:<br>
  `docker inspect -f '{{ index .Config.Labels "build_version" }}' parkerhemphill/media-converter`
