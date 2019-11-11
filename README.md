@@ -69,7 +69,7 @@ docker run -d \
 * To see log of converted media:<br>
  `docker exec -it media-converter cat /torrent/Logs/converted.log` 
 * Monitor currently encoding media:<br>
- `docker exec -it media-converter tail -f /tmp/converted_media`
+ `docker exec -it media-converter /opt/status.sh`
 * Container version number:<br>
  `docker inspect -f '{{ index .Config.Labels "build_version" }}' media-converter`
 * Image version number:<br>
