@@ -14,8 +14,9 @@ print_warning(){ echo -e "$yellow[WARNING]: $1$clear"; }
 print_ok(){ echo -e "$green[OK]: $1$clear"; }
 print_notice(){ echo -e "$white[NOTICE]: $1$clear"; }
 
-# Get hostname
-hostname=$(hostname)
+cat /dev/null > /tmp/converted_media
+sleep 2
+
 #Check a process to see if it is running and provide the PID of process
 CHECK_PROCESS(){
 PID_PROCESS=$(pgrep -u ${3} -f "${1}")
