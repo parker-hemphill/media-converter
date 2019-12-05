@@ -31,7 +31,7 @@
 * Change "ENCODE" to `'h264'` or `'h265'` to use h264 (default if option isn't set) or h265 (HVEC)
 ```
 #docker-compose.yaml
-version: "2"
+version: "3"
 services:
   deluge:
     image: parkerhemphill/media-converter:latest
@@ -45,6 +45,11 @@ services:
     volumes:
       - /media/torrent:/torrent
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f '/bin/bash /opt/media-converter.sh' >/dev/null || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 5
 ```
 ## Docker run example
 * In this example I use `'/media/torrent'` as the mount point on my server and UID "1000" to map my primary user to the container.  You can get the needed UID/GID by running `id <USER_NAME>`.  I.E. `id plex`
