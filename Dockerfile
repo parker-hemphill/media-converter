@@ -2,7 +2,7 @@
 FROM ubuntu:latest
 
 # set version label
-LABEL build_version="Media-Converter, Version: 1.2.4, Build-date: 11-Nov-2019"
+LABEL build_version="Media-Converter, Version: 1.2.5, Build-date: 22-Feb-2020"
 LABEL maintainer=parker-hemphill
 
 RUN echo "**** install build packages ****"; \
