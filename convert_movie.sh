@@ -85,6 +85,8 @@ fi
 
 convert_file(){
 START_TIME=$(date +%s)
+[[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n CONVERSION-START -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "\"$log_input\" conversion started"
+START_TIME=$(date +%s)
 handbrake_options="$handbrake_options --aencoder faac --normalize-mix 1 --mixdown stereo --gain 10.0 --drc 2.5"
 
 width="$(mediainfo --Inform='Video;%Width%' "$input")"
@@ -153,13 +155,12 @@ if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
   output_size=$(ls -lh "${output}"|awk '{print $5}')
   mv "$output" "$media_import"
   rm "$input"
-  log_input=$(echo "$input"|sed 's/\/torrent\/Complete\/Convert\///')
   if [[ ! -f $log ]]; then
-    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n Movie -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "\"$log_input\" converted"
+    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n CONVERSION-COMPLETE -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "\"$log_input\" converted"
     echo "[Type ] [  Date  ] [  Convert Time  ] [  Original Filesize|Converted Filesize  ] Filename" >> $log
     echo "[Movie] [$(date "+%D %H:%M")] [$(date -d@$TOTAL_TIME -u +%H:%M:%S)] [${input_size}|${output_size}] $log_input" >> $log
   else
-    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n Movie -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "\"$log_input\" converted"
+    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n CONVERSION-COMPLETE -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "\"$log_input\" converted"
     echo "[Movie] [$(date "+%D %H:%M")] [$(date -d@$TOTAL_TIME -u +%H:%M:%S)] [${input_size}|${output_size}] $log_input" >> $log
   fi
 else
@@ -175,6 +176,7 @@ filename="$media_convert/$filename"
   if [[ $count -lt 1 ]]; then
     input="$filename"
     output="${input%\.*}-converted.mp4"
+    log_input=$(echo "$input"|sed 's/\/torrent\/Complete\/Convert\///')
     print_ok "Converting: $input\nFile"
     check_mkv
     convert_file

@@ -7,7 +7,7 @@ log=/tmp/media-converter.log
 
 # Clear log file and inject start-up time
 echo -e "Media-converter container started $(date "+%D %H:%M")\n" > $log
-[[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n 'Start-up' -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Media-Converter container started $(date "+%D %H:%M")"
+[[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n NOTIFY -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Media-Converter container started $(date "+%D %H:%M")"
 
 # Add "media" user and group, and map them to provided UID/GID or 1000 if not provided
 # User will show as "media" inside container but will map to the correct UID outside container
@@ -31,7 +31,7 @@ if [[ ! -d /torrent ]]; then
   mkdir /torrent
   chown media:media /torrent
   echo "Created /torrent" >> $log
-  [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n 'NOTIFY' -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Created Torrent directory inside container"
+  [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n NOTIFY -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Created Torrent directory inside container"
 else
   echo "/torrent is owned by user/group $(ls -l -d /torrent|awk '{print $3":"$4}')" >> $log
 fi
@@ -42,7 +42,7 @@ do
     mkdir /torrent/$folder
     chown media:media /torrent/$folder
     echo "Created /torrent/$folder" >> $log
-    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n 'NOTIFY' -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Created /torrent/$folder inside container"
+    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n NOTIFY -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Created /torrent/$folder inside container"
   else
     echo "/torrent/$folder is owned by user/group $(ls -l -d /torrent/$folder|awk '{print $3":"$4}')" >> $log
   fi
@@ -54,7 +54,7 @@ do
     mkdir /torrent/Complete/$folder
     chown media:media /torrent/Complete/$folder
     echo "Created /torrent/Complete/$folder" >> $log
-    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n 'NOTIFY' -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Created /torrent/Complete/$folder"
+    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n NOTIFY -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Created /torrent/Complete/$folder"
   else
     echo "/torrent/Complete/$folder is owned by user/group $(ls -l -d /torrent/Complete/$folder|awk '{print $3":"$4}')" >> $log
   fi
@@ -68,7 +68,7 @@ do
       mkdir /torrent/Complete/$folder/$media_folder
       chown media:media /torrent/Complete/$folder/$media_folder
       echo "Created /torrent/Complete/$folder/$media_folder" >> $log
-      [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n 'NOTIFY' -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Created /torrent/Complete/$folder/$media_folder"
+      [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n NOTIFY -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Created /torrent/Complete/$folder/$media_folder"
     else
       echo "/torrent/Complete/$folder/$media_folder is owned by user/group $(ls -l -d /torrent/Complete/$folder/$media_folder|awk '{print $3":"$4}')" >> $log
     fi
@@ -84,5 +84,5 @@ elif [[ $ENCODE == "x265" ]]; then
   sudo -u media bash -c "while :; do /opt/batch_move.sh; sleep 5; /opt/convert_tv.sh x265 $GROWL $GROWL_IP $GROWL_PORT; /opt/convert_movie.sh x265 $GROWL $GROWL_IP $GROWL_PORT; sleep 25; done"
 else
   echo "Invalid encoder, choose either \"x264\" or \"x265\" in docker variables" >> $log
-  [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n 'Error' -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Invalid encoder, choose either \"x264\" or \"x265\" in docker variables"
+  [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n ERROR -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "Invalid encoder, choose either \"x264\" or \"x265\" in docker variables"
 fi
