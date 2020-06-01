@@ -14,7 +14,8 @@
 * 3: Completed file is moved to `'<volume>/Complete/IMPORT/<TVShows|Movies>'`, ready to be ingested by SickChill, etc. into Plex/Jellyfin/Kodi library
   
 ### Notes:
-* The option to choose h264 or HVEC (h265) has been added to the image, simply pass **"- ENCODE=<h264|h265>"** to environment for container (**Defaults to h264 if variable isn't set) 
+* NEW ADDITION: Growl Notifications for macOS users.  Simply pass GROWL=YES, GROWL_IP=<mac_ip>, and GROWL_PORT=<growl_port> ENV variables
+* The option to choose h264 or HVEC (h265) has been added to the image, simply pass **"- ENCODE=<x264|x265>"** to environment for container (**Defaults to h264 if variable isn't set**) 
 * All files converted are added to a logfile located at **\<volume\>/Logs/converted.log**
 * Upon start-up container will check '\<volume\>' and create the needed directories if they don't exist
 * Container defaults to uid/gid 1000 if PUID/PGID aren't specified in the environment settings
@@ -28,12 +29,12 @@
 ## Docker-compose example
 * In this example I use `'/media/torrent'` as the mount point on my server and UID "1000" to map my primary user to the container.  You can get the UID/GID of desired user by running `id <USER_NAME>`.  I.E. `id plex`
 * Change "TZ" to match your desired timezone.  A vaild list can be found at https://www.wikiwand.com/en/List_of_tz_database_time_zones under the "TZ database name" column.  Default is "America/New_York"
-* Change "ENCODE" to `'h264'` or `'h265'` to use h264 (default if option isn't set) or h265 (HVEC)
+* Change "ENCODE" to `'x264'` or `'x265'` to use h264 (default if option isn't set) or h265 (HVEC)
 ```
 #docker-compose.yaml
 version: "3"
 services:
-  deluge:
+  media-converter:
     image: parkerhemphill/media-converter:latest
     container_name: media-converter
     network_mode: host
@@ -41,7 +42,10 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/New_York
-      - ENCODE=h264
+      - ENCODE=x264
+      - GROWL=YES #Optional, enabled growl notifications from container (Defaults to no if not provided)
+      - GROWL_IP=10.0.0.150 #Optional, set to IP address of PC you wish to recieve Growl notifications
+      - GROWL_PORT=23053 #Optional, only needed if you are using something other than default Growl port
     volumes:
       - /media/torrent:/torrent
     restart: unless-stopped
@@ -54,14 +58,29 @@ services:
 ## Docker run example
 * In this example I use `'/media/torrent'` as the mount point on my server and UID "1000" to map my primary user to the container.  You can get the needed UID/GID by running `id <USER_NAME>`.  I.E. `id plex`
 * Change "TZ" to match your desired timezone.  A vaild list can be found at https://www.wikiwand.com/en/List_of_tz_database_time_zones under the "TZ database name" column.  Default is "America/New_York"
-* Change "ENCODE" to `'h264'` or `'h265'` to use h264 (default if option isn't set) or h265 (HVEC)
+* Change "ENCODE" to `'x264'` or `'x265'` to use h264 (default if option isn't set) or h265 (HVEC)
 ```
 docker run -d \
   --name=media-converter \
   -e PUID=1000 \
   -e PGID=1000 \
   -e TZ=America/New_York \
-  -e ENCODE=h264 \
+  -e ENCODE=x264 \
+  -v /media/torrent:/torrent \
+  --restart unless-stopped \
+  parkerhemphill/media-converter:latest
+```
+* Same example as above but with Growl notifications included.  Be sure to change **GROWL_IP** and **GROWL_PORT** to match your settings
+```
+docker run -d \
+  --name=media-converter \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  -e TZ=America/New_York \
+  -e ENCODE=x264 \
+  -e GROWL=YES \
+  -e GROWL_IP=10.0.0.150 \
+  -e GROWL_PORT=23053 \
   -v /media/torrent:/torrent \
   --restart unless-stopped \
   parkerhemphill/media-converter:latest

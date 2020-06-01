@@ -1,6 +1,11 @@
 #!/bin/bash
+
 ENCODE=$1
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+GROWL=$2
+GROWL_IP=$3
+GROWL_PORT=$4
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 pidfile=/var/tmp/encode_tv.pid
 
 if [ -f $pidfile ]; then
@@ -72,6 +77,7 @@ if [ "${input: -4}" == ".mkv" ]; then
      exit 0
    else
      print_error "FFMPEG convert of $input FAILED"
+     [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n ERROR -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "FFMPEG convert of \"$input\" FAILED"
      exit 1
    fi
 fi
@@ -149,12 +155,15 @@ if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
   rm "$input"
   log_input=$(echo "$input"|sed 's/\/torrent\/Complete\/Convert\///')
   if [[ ! -f $log ]]; then
+    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n TVShow -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "\"$log_input\" converted"
     echo "[Type ] [  Date  ] [  Convert Time  ] [  Original Filesize|Converted Filesize  ] Filename" >> $log
     echo "[TV   ] [$(date "+%D %H:%M")] [$(date -d@$TOTAL_TIME -u +%H:%M:%S)] [${input_size}|${output_size}] $log_input" >> $log
   else
+    [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n TVShow -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "\"$log_input\" converted"
     echo "[TV   ] [$(date "+%D %H:%M")] [$(date -d@$TOTAL_TIME -u +%H:%M:%S)] [${input_size}|${output_size}] $log_input" >> $log
   fi
 else
+  [[ ${GROWL} != NO ]] && gntp-send -a Media-Converter -n ERROR -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "\"$log_input\" conversion FAILED"
   rm "$output" > /dev/null 2>&1
 fi
 }

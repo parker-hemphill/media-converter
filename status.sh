@@ -11,11 +11,40 @@ clear='\e[0m'
 #Print status messages
 print_error(){ echo -e "$red[ERROR]: $1$clear"; }
 print_warning(){ echo -e "$yellow[WARNING]: $1$clear"; }
-print_ok(){ echo -e "$green[OK]: $1$clear"; }
-print_notice(){ echo -e "$white[NOTICE]: $1$clear"; }
+print_ok(){ echo -e "$green$1$clear"; }
+print_notice(){ echo -e "$white$1$clear"; }
 
 cat /dev/null > /tmp/converted_media
 sleep 2
+
+# Generate uptime and container creation time
+container_start=$(stat -c %Y /var/tmp/.media-converter.uptime)
+current_epoch=$(date +%s)
+raw_uptime=$((current_epoch - container_start))
+
+num=$raw_uptime
+min=0
+hour=0
+day=0
+if((num>59));then
+    ((sec=num%60))
+    ((num=num/60))
+    if((num>59));then
+        ((min=num%60))
+        ((num=num/60))
+        if((num>23));then
+            ((hour=num%24))
+            ((day=num/24))
+        else
+            ((hour=num))
+        fi
+    else
+        ((min=num))
+    fi
+else
+    ((sec=num))
+fi
+container_uptime="${day}d ${hour}h ${min}m ${sec}s"
 
 #Check a process to see if it is running and provide the PID of process
 CHECK_PROCESS(){
@@ -54,8 +83,9 @@ declare -i FULL=$(df -h "$1"|tail -1|awk '{print $5}'|tr -d %)
 clear
 LOAD=$(cat /proc/loadavg | awk '{print $1, $2, $3}')
 print_notice "Performing health checks [`date +%H:%M`]"
-echo -e "         \e[1;97m $(perl -e 'print ucfirst(`uptime -p`);')"
-echo -e "          SYS Load: \e[1;34m${LOAD}\e[0m"
+echo -e "\e[1;97mContainer created: $(date -d @$(stat -c %Y /var/tmp/.media-converter.create) "+%b-%d-%Y %H:%M")"
+echo -e "Container uptime: $container_uptime"
+echo -e "SYS Load: \e[1;34m${LOAD}\e[0m"
 
 CHECK_SPACE "/torrent"
 
