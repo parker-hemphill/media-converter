@@ -1,26 +1,25 @@
 #Download base image ubuntu
-FROM ubuntu:latest
+FROM debian:latest
 
 # set version label
-LABEL build_version="Media-Converter, Version: 1.3.6, Build-date: 2-Jun-2020"
+LABEL build_version="Media-Converter, Version: 1.3.7, Build-date: 2-Jun-2020"
 LABEL maintainer=parker-hemphill
-
-RUN echo "**** install build packages ****"; \
-apt-get update; \
-apt-get upgrade -y; \
-apt-get --no-install-recommends -qq -y install mediainfo ffmpeg handbrake-cli sudo procps tzdata gntp-send; \
-apt autoremove
 
 # Copy convert shell scripts to /opt
 COPY *.sh /opt/
 
 # Set scripts as executable
-RUN echo "**** set shell scripts as executable ****"; \
+RUN \
 chmod +rxxx /opt/status.sh; \
 chmod +rxxx /opt/convert_movie.sh; \
 chmod +rxxx /opt/convert_tv.sh; \
 chmod +rxxx /opt/batch_move.sh; \
-chmod +rxxx /opt/media-converter.sh;
+chmod +rxxx /opt/media-converter.sh; \
+apt-get update; \
+apt-get upgrade -y; \
+apt-get --no-install-recommends -qq -y install mediainfo ffmpeg handbrake-cli sudo procps tzdata gntp-send; \
+apt autoremove; \
+echo 'Set disable_coredump false' > /etc/sudo.conf;
 
 # Set default docker variables
 ENV PUID=${PUID:-1000}
