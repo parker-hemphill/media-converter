@@ -60,7 +60,6 @@ print_ok(){  echo -e "$green[OK]: $1$clear"; }
 
 #Script actions
 if [[ ! $(ls "$media_convert") ]]; then
-  print_ok "No files to encode, exiting"
   exit 0
 fi
 

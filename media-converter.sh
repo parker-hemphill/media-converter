@@ -17,7 +17,7 @@ echo "\"media\" user is mapped to external UID $(id -u media)"
 echo "\"media\" group is mapped to external GID $(id -g media)"
 
 # Set timezone
-echo "$TZ" > /etc/timezone
+echo $TZ|sudo tee /etc/timezone
 dpkg-reconfigure -f noninteractive tzdata
 
 # Create dummyfile so we can get creation date for container
