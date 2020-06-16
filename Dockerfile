@@ -2,7 +2,7 @@
 FROM debian:latest
 
 # set version label
-LABEL build_version="Media-Converter, Version: 1.3.7, Build-date: 2-Jun-2020"
+LABEL build_version="Media-Converter, Version: 1.3.8, Build-date: 16-Jun-2020"
 LABEL maintainer=parker-hemphill
 
 # Copy convert shell scripts to /opt
@@ -11,8 +11,7 @@ COPY *.sh /opt/
 # Set scripts as executable
 RUN \
 chmod +rxxx /opt/status.sh; \
-chmod +rxxx /opt/convert_movie.sh; \
-chmod +rxxx /opt/convert_tv.sh; \
+chmod +rxxx /opt/convert_media.sh; \
 chmod +rxxx /opt/batch_move.sh; \
 chmod +rxxx /opt/media-converter.sh; \
 apt-get update; \
