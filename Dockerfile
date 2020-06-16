@@ -2,7 +2,7 @@
 FROM debian:latest
 
 # set version label
-LABEL build_version="Media-Converter, Version: 1.3.8, Build-date: 16-Jun-2020"
+LABEL build_version="Media-Converter, Version: 1.3.9, Build-date: 16-Jun-2020"
 LABEL maintainer=parker-hemphill
 
 # Copy convert shell scripts to /opt
@@ -18,6 +18,7 @@ apt-get update; \
 apt-get upgrade -y; \
 apt-get --no-install-recommends -qq -y install mediainfo ffmpeg handbrake-cli sudo procps tzdata gntp-send; \
 apt autoremove; \
+ln -s /opt/status.sh /usr/local/bin/status; \
 echo 'Set disable_coredump false' > /etc/sudo.conf;
 
 # Set default docker variables
