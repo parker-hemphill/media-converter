@@ -1,0 +1,33 @@
+#!/bin/bash
+
+container_setup(){
+  echo "${ENCODE}" > /tmp/ENCODE
+  chmod 444 /tmp/ENCODE
+  echo "${MEDIA_SERVER}" > /tmp/MEDIA_SERVER
+  chmod 444 /tmp/MEDIA_SERVER
+  source /opt/functions
+  set_timezone ${TZ}
+  container_create_time
+  add_user ${PUID} ${PGID}
+  touch ${log} && chown media:media ${log}
+  chown -R media:media /log
+  check_mount || exit 1
+  for directory in Complete Download Logs; do
+    create_directory /media/${directory} || exit 1
+  done
+  for directory in /media/Complete /media/Download /media/Complete/Convert /media/Complete/IMPORT; do
+    for media_directory in TVShows Movies; do
+      create_directory ${directory}/${media_directory} || exit 1
+    done
+  done
+}
+
+
+container_setup
+while true; do
+  sudo -u media bash -c "source /opt/functions;move_media"; \
+  sudo -u media bash -c "source /opt/functions;convert_media /media/Complete/Convert/TVShows"; \
+  sudo -u media bash -c "source /opt/functions;convert_media /media/Complete/Convert/Movies"; \
+  sleep 60
+done
+

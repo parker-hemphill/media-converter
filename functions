@@ -1,0 +1,304 @@
+# Set PATH
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Location to create log file
+log=/log/media-converter.log
+
+# Pass encode to variable
+encode=$(cat /tmp/ENCODE)
+
+# Location to check for new media files
+movie_add="/media/Complete/Movies"
+tv_add="/media/Complete/TVShows"
+
+# Location to move media files to for conversion
+movie_convert="/media/Complete/Convert/Movies"
+tv_convert="/media/Complete/Convert/TVShows"
+
+# Location to move media files to for ingestion by SickChill, CoachPotato, etc
+movie_import="/media/Complete/IMPORT/Movies"
+tv_import="/media/Complete/IMPORT/TVShows"
+
+# Location of binaries used by container
+handbrake=/usr/local/bin/HandBrakeCLI  
+ffmpeg=/usr/local/bin/ffmpeg
+mediainfo=/usr/bin/mediainfo
+
+# Set colors for status message
+red='\e[1;31m'
+yellow='\e[1;33m'
+blue='\e[1;34m'
+green='\e[1;32m'
+white='\e[1;97m'
+clear='\e[0m'
+
+# Functions for status message
+print_error(){ echo -e "${red}[ERROR]: ${1}${clear}"|tee -a ${log}; }
+print_warning(){ echo -e "${yellow}[WARNING]: ${1}${clear}"|tee -a ${log}; }
+print_info(){ echo -e "${white}${1}${clear}"|tee -a ${log}; }
+print_ok(){ echo -e "${green}[OK]: ${1}${clear}"|tee -a ${log}; }
+
+# Use this as the function to send messages so it's easy to add new notification methods
+send_message(){
+  [[ ${GROWL} != NO ]] && growl_message "${1}"
+}
+
+
+growl_message(){
+  gntp-send -a Media-Converter -n NOTIFY -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "${1}"
+}
+
+
+container_create_time(){
+  # Create dummyfile so we can get creation date for container
+  [[ ! -f /var/tmp/.media-converter.create ]] && touch /var/tmp/.media-converter.create
+}
+
+
+container_uptime(){
+  # Set mod time of dummyfile so we can generate uptime for container
+  touch /var/tmp/.media-converter.uptime
+}
+
+
+add_user(){
+  # Add "media" user and group, and map them to provided UID/GID or 1000 if not provided
+  groupadd -g ${2} media
+  useradd -s /bin/bash -m -u ${1} -g media media
+  print_info "\"media\" user is mapped to external UID $(id -u media)"
+  print_info "\"media\" group is mapped to external GID $(id -g media)"
+}
+
+
+set_timezone(){
+  # Set timezone
+  echo ${TZ}|tee /etc/timezone
+  dpkg-reconfigure -f noninteractive tzdata > /dev/null 2>&1
+  print_info "Timezone set to ${TZ}"
+  print_info "Current date and time inside container: $(date +%b-%d" "%H:%M)"
+}
+
+
+check_mount(){
+  # Check if /media is mounted to an external volume and writeable by media user
+  if [[ ! $(mountpoint /media) ]]; then
+    print_error "external media directory NOT mounted to external volume"
+    send_message "media directory NOT mounted to external volume"
+    exit 1
+  fi
+  sudo -u media bash -c "source /opt/functions && if [[ -w /media ]]; then \
+                           print_ok \"/media writeable by UID ${PUID}\"; \
+                         else \
+                           print_error \"/media not writeable by UID ${PUID}\"; \
+                           exit 1; \
+                         fi"
+}
+
+
+directory_writeable(){
+  sudo -u media bash -c "source /opt/functions && if [[ ! -w ${1} ]]; then \
+                           print_error \"${1} not writeable by UID ${PUID}\"; \
+                           exit 1; \
+                         fi"
+}
+
+
+create_directory(){
+  if [[ -d ${1} ]]; then
+    directory_writeable ${1}
+  else
+    mkdir -p ${1} && echo "Created ${1}"
+    chown media:media ${1} && print_info "Set ownership of ${1} to UID ${PUID}"
+    print_ok "Created ${1} directory"
+  fi
+}
+
+
+move_media(){
+  # This ignores any files that might be sample media files (media under 50MB in size)
+  find "${tv_add}" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} ${tv_convert}/ \;
+  find "${movie_add}" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} ${movie_convert}/ \;
+  # Remove left behind files older than 2 days
+  find "${tv_add}/" -ctime +2 -exec rm -rf {} +
+  find "${movie_add}/" -ctime +2 -exec rm -rf {} +
+}
+
+
+convert_media(){
+  rm "${1}/*-converted.mp4" > /dev/null 2>&1
+  rm "${1}/mkv-converted-*" > /dev/null 2>&1
+  set_priority
+  # Check if $input is empty
+  if [ ! -z "$(ls -A "${1}")" ]; then
+    local input=$(/bin/ls -1t "${1}"|head -1)
+    encode_media "${1}/${input}"
+  else
+    exit 0
+  fi
+}
+
+
+encode_media(){
+  local input="${1}"
+  local handbrake_options="--optimize --markers --encoder ${encode} --encopts vbv-maxrate=25000:vbv-bufsize=31250:ratetol=inf --crop 0:0:0:0 --auto-anamorphic"
+  set_bitrate "${input}" "${handbrake_options}"
+}
+
+
+set_bitrate(){
+  local input="${1}"
+  local -i width="$(${mediainfo} --Inform='Video;%Width%' "${input}")"
+  local -i height="$(${mediainfo} --Inform='Video;%Height%' "${input}")"
+  if ((${width} > 1280)) || ((${height} > 720)); then
+    local -i max_bitrate="5000"
+  elif ((${width} > 720)) || ((${height} > 576)); then
+    local -i max_bitrate="4000"
+  else
+    local -i max_bitrate="1800"
+  fi
+  local -i min_bitrate="$((max_bitrate / 2))"
+  local -i bitrate="$(${mediainfo} --Inform='Video;%BitRate%' "${input}")"
+  if [ ! "${bitrate}" ]; then
+    local -i bitrate="$(${mediainfo} --Inform='General;%OverallBitRate%' "${input}")"
+    local -i bitrate="$(((bitrate / 10) * 9))"
+  fi
+  if [ "${bitrate}" ]; then
+    local -i bitrate="$(((bitrate / 5) * 4))"
+    local -i bitrate="$((bitrate / 1000))"
+    local -i bitrate="$(((bitrate / 100) * 100))"
+    if ((${bitrate} > ${max_bitrate})); then
+        local -i bitrate="${max_bitrate}"
+    elif ((${bitrate} < ${min_bitrate})); then
+        local -i bitrate="${min_bitrate}"
+    fi
+  else
+    local -i bitrate="${min_bitrate}"
+  fi
+  local handbrake_options="${2} --vb ${bitrate}"
+  set_framerate "${input}" "${handbrake_options}"
+}
+
+
+set_framerate(){
+  local input="${1}"
+  local handbrake_options="${2}"
+  local frame_rate="$(${mediainfo} --Inform='Video;%FrameRate_Original%' "${input}")"
+  if [ ! "${frame_rate}" ]; then
+    local frame_rate="$(${mediainfo} --Inform='Video;%FrameRate%' "${input}")"
+  fi
+  if [ "${frame_rate}" == '29.970' ]; then
+    local handbrake_options="${handbrake_options} --detelecine --rate 23.976"
+  else
+    local handbrake_options="${handbrake_options} --rate 30 --pfr"
+  fi
+  set_audio "${1}" "${handbrake_options}"
+}
+
+
+set_audio(){
+  local input="${input}"
+  local -i channels="$(${mediainfo} --Inform='Audio;%Channels%' "${input}" | sed 's/[^0-9].*$//')"
+  if ((${channels} > 2)); then
+    local handbrake_options="${2} --aencoder ca_aac,copy:ac3"
+  elif [ "$(${mediainfo} --Inform='General;%Audio_Format_List%' "${input}" | sed 's| /.*||')" == 'AAC' ]; then
+    local handbrake_options="${2} --aencoder copy:aac"
+  fi
+  convert_mkv "${input}" "${handbrake_options}"
+}
+
+
+convert_mkv(){
+  local input="${1}"
+  # Convert file to MP4 with FFMPEG
+  if [[ "${input: -4}" == ".mkv" ]]; then
+    local output=$(echo "${input}"|sed -e 's/\/TVShows\//\/TVShows\/mkv-converted-/' -e 's/\/Movies\//\/Movies\/mkv-converted-/')
+    local output="${output%.*}.mp4"
+    if nice ${nice_level} ${ffmpeg} -threads 4 -i "${input}" -codec copy "${output}"; then
+      print_info "FFMPEG created ${output}"
+      rm "${input}"
+      handbrake_convert "${output}" "${2}"
+    else
+      print_error "FFMPEG convert of ${input} FAILED"
+      send_message "ERROR: FFMPEG convert of ${input} FAILED"
+      media_failure "${input}"
+    fi
+  else
+    # No FFMPEG action needed
+    handbrake_convert "${input}" "${2}"
+  fi
+}
+
+
+handbrake_convert(){
+  local input="${1}"
+  local output="${input%\.*}-converted.mp4"
+  local output_import=$(echo "${output}"|sed -e 's/\/Convert\//\/IMPORT\//')
+  local output_import=$(echo "${output_import}"|sed -e 's/-converted//' -e 's/mkv-converted-//')
+  local handbrake_options="${2}"
+  if nice ${nice_level} ${handbrake} ${handbrake_options} --input "${input}" --output "${output}" > /log/handbrake_output.log 2>&1; then
+    conversion_log "${input}" "${output}"
+    print_ok "HandBrakeCLI converted ${input}"
+    send_message "HandBrakeCLI converted ${input}"
+    echo "${handbrake} ${handbrake_options} --input ${input} --output ${output}" >> /log/handbrake_command_history.log
+    mv "${output}" "${output_import}" && rm "${input}"
+  else
+    rm "${output}"
+    media_failure "${input}"
+    print_error "HandBrakeCLI convert of ${input} FAILED"
+    send_message "ERROR: HandBrakeCLI convert of ${input} FAILED"
+  fi
+}
+
+
+media_failure(){
+  if [[ ! -d /media/FAILED ]]; then
+    mkdir /media/FAILED
+  fi
+  mv "${1}" /media/FAILED/
+  print_error "${1} appears corrupt and was moved to \"/media/FAILED\""
+  send_message "${1} appears corrupt and was moved to \"/media/FAILED\""
+}
+
+
+set_priority(){
+  niceness=$(cat /tmp/MEDIA_SERVER)
+  if [[ ${niceness} == "no" ]]; then
+    nice_level='-0'
+  else
+    nice_level='-15'
+  fi
+}
+
+
+conversion_log(){
+  local input="${1}"
+  local output="${2}"
+  local type=$(echo "${input}"|awk -F'/' '{print $5}')
+  local input_size=$(ls -lh "${input}"|awk '{print $5}')
+  local output_size=$(ls -lh "${output}"|awk '{print $5}')
+  local filename=$(echo "${input}"|awk -F'/' '{print $NF}')
+  while ((${#type} < 9)); do 
+    local type+=' '
+  done
+  while ((${#input_size} < 12)); do
+    local input_size+=' '
+  done
+  while ((${#output_size} < 12)); do
+    local output_size+=' '
+  done
+  if [[ ! -f /media/Logs/converted.log ]]; then
+    echo " Type   | Input     | Converted | Encoder | Filename" > /media/Logs/converted.log
+  fi 
+  echo "${type}|${input_size}|${output_size}|" ${encode}  "|${filename}" >> /media/Logs/converted.log
+}
+
+set_priority(){
+  niceness=$(cat /tmp/MEDIA_SERVER)
+  if [[ ${niceness} == "no" ]]; then
+    nice_level='-0'
+    print_info "\"MEDIA_SERVER\" variable not set, leaving encoding priority at default"
+  else
+    nice_level='-15'
+    print_info "\"MEDIA_SERVER\" variable set, lowering encoding priority below default"
+  fi
+}

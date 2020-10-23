@@ -1,0 +1,113 @@
+echo "Downloading updates and compiling binaries"
+  apt-get update > /dev/null 2>&1; \
+  apt-get upgrade -y > /dev/null 2>&1; \
+  apt-get install -y --no-install-recommends apt-utils > /dev/null 2>&1; \
+  ln -s /opt/status /usr/local/bin/status > /dev/null 2>&1; \
+  echo 'Set disable_coredump false' > /etc/sudo.conf; \
+  apt-get install -y --no-install-recommends autoconf automake build-essential ca-certificates cmake git git-core gntp-send gnutls-bin libass9 libass-dev libbz2-dev libfontconfig1-dev libfreetype6-dev libfribidi-dev libgnutls28-dev libharfbuzz-dev libjansson-dev liblzma-dev libmp3lame-dev libnuma-dev libogg-dev libopus-dev libsamplerate-dev libspeex-dev libtheora-dev libtool libtool-bin libturbojpeg0-dev libunistring-dev libvorbis-dev libva-dev libdrm-dev libvpx-dev libx264-dev libxcb-xfixes0-dev libxml2-dev m4 make mediainfo meson nasm ninja-build patch pkg-config procps python sudo tar texinfo tzdata wget yasm zlib1g-dev > /dev/null 2>&1; \
+  mkdir -p /tmp/ffmpeg_sources; \
+  mkdir -p /tmp/handbrake; \
+  mkdir -p /ffmpeg_build; \
+echo "[1 of 10] Compiling x264"; \
+  cd /tmp/ffmpeg_sources; \
+  git clone --depth 1 https://code.videolan.org/videolan/x264.git > /dev/null 2>&1; \
+  cd x264; \
+  PKG_CONFIG_PATH="/ffmpeg_build/lib/pkgconfig" ./configure --prefix="/ffmpeg_build" --bindir="/usr/local/bin" --enable-static --enable-pic > /dev/null 2>&1; \
+  make -j$(nproc) > /dev/null 2>&1; \
+  make install > /dev/null 2>&1; \
+echo "[2 of 10] Compiling x265"; \
+  cd /tmp/ffmpeg_sources; \
+  git clone https://bitbucket.org/multicoreware/x265_git > /dev/null 2>&1; \
+  cd x265_git/build/linux; \
+  cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="/ffmpeg_build" -DENABLE_SHARED=off ../../source > /dev/null 2>&1; \
+  make -j$(nproc) > /dev/null 2>&1; \
+  make install > /dev/null 2>&1; \
+echo "[3 of 10] Compiling libvpx"; \
+  cd /tmp/ffmpeg_sources; \
+  git clone --depth 1 https://chromium.googlesource.com/webm/libvpx.git > /dev/null 2>&1; \
+  cd libvpx; \
+  ./configure --prefix="/ffmpeg_build" --disable-examples --disable-unit-tests --enable-vp9-highbitdepth --as=yasm > /dev/null 2>&1; \
+  make -j$(nproc) > /dev/null 2>&1; \
+  make install > /dev/null 2>&1; \
+echo "[4 of 10] Compiling libfdk-aac"; \
+  cd /tmp/ffmpeg_sources; \
+  git clone --depth 1 https://github.com/mstorsjo/fdk-aac > /dev/null 2>&1; \
+  cd fdk-aac; \
+  autoreconf -fiv > /dev/null 2>&1; \
+  ./configure --prefix="/ffmpeg_build" --disable-shared > /dev/null 2>&1; \
+  make -j$(nproc) > /dev/null 2>&1; \
+  make install > /dev/null 2>&1; \
+echo "[5 of 10] Compiling libmp3lame"; \
+  cd /tmp/ffmpeg_sources; \
+  wget -O lame-3.100.tar.gz https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz > /dev/null 2>&1; \
+  tar xzvf lame-3.100.tar.gz > /dev/null 2>&1; \
+  cd lame-3.100; \
+  ./configure --prefix="/ffmpeg_build" --bindir="/usr/local/bin" --disable-shared --enable-nasm > /dev/null 2>&1; \
+  make -j$(nproc) > /dev/null 2>&1; \
+  make install > /dev/null 2>&1; \
+echo "[6 of 10] Compiling libopus"; \
+  cd /tmp/ffmpeg_sources; \
+  git clone --depth 1 https://github.com/xiph/opus.git > /dev/null 2>&1; \
+  cd opus; \
+  ./autogen.sh > /dev/null 2>&1; \
+  ./configure --prefix="/ffmpeg_build" --disable-shared > /dev/null 2>&1; \
+  make -j$(nproc) > /dev/null 2>&1; \
+  make install > /dev/null 2>&1; \
+echo "[7 of 10] Compiling libaom"; \
+  cd /tmp/ffmpeg_sources; \
+  git clone --depth 1 https://aomedia.googlesource.com/aom > /dev/null 2>&1; \
+  mkdir -p aom_build; \
+  cd aom_build; \
+  cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="/ffmpeg_build" -DENABLE_SHARED=off -DENABLE_NASM=on ../aom > /dev/null 2>&1; \
+  make -j$(nproc) > /dev/null 2>&1; \
+  make install > /dev/null 2>&1; \
+echo "[8 of 10] Compiling libsvtav1"; \
+  cd /tmp/ffmpeg_sources; \
+  git clone https://github.com/AOMediaCodec/SVT-AV1.git > /dev/null 2>&1; \
+  mkdir -p SVT-AV1/build; \
+  cd SVT-AV1/build; \
+  cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="/ffmpeg_build" -DCMAKE_BUILD_TYPE=Release -DBUILD_DEC=OFF -DBUILD_SHARED_LIBS=OFF .. > /dev/null 2>&1; \
+  make -j$(nproc) > /dev/null 2>&1; \
+  make install > /dev/null 2>&1; \
+echo "[9 of 10] Compiling FFmpeg"; \
+  cd /tmp/ffmpeg_sources; \
+  wget -O ffmpeg-snapshot.tar.bz2 https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 > /dev/null 2>&1; \
+  tar xjvf ffmpeg-snapshot.tar.bz2 > /dev/null 2>&1; \
+  cd ffmpeg; \
+  PKG_CONFIG_PATH="/ffmpeg_build/lib/pkgconfig" ./configure \
+    --prefix="/ffmpeg_build" \
+    --pkg-config-flags="--static" \
+    --extra-cflags="-I/ffmpeg_build/include" \
+    --extra-ldflags="-L/ffmpeg_build/lib" \
+    --extra-libs="-lpthread -lm" \
+    --bindir="/usr/local/bin" \
+    --enable-gpl \
+    --enable-gnutls \
+    --enable-libaom \
+    --enable-libass \
+    --enable-libfdk-aac \
+    --enable-libfreetype \
+    --enable-libmp3lame \
+    --enable-libopus \
+    --enable-libsvtav1 \
+    --enable-libvorbis \
+    --enable-libvpx \
+    --enable-libx264 \
+    --enable-libx265 \
+    --enable-nonfree > /dev/null 2>&1; \
+  make -j$(nproc) > /dev/null 2>&1; \
+  make install > /dev/null 2>&1; \
+echo "[10 of 10] Compiling HandbrakeCLI"; \
+  cd /tmp/handbrake; \
+  git clone https://github.com/HandBrake/HandBrake.git > /dev/null 2>&1; \
+  cd HandBrake; \
+  ./configure --launch-jobs=$(nproc) --launch --enable-qsv --disable-gtk > /dev/null 2>&1; \
+  make --directory=build install > /dev/null 2>&1; \
+  cd /tmp; \
+  rm -rf * > /dev/null 2>&1; \
+echo "Creating \"/log\" directory inside container"; \
+  mkdir /log; \
+  chmod +rwrwrw /log; \
+  chmod +xxx /opt/media-converter; \
+echo "Cleaning install packages and temp files"; \
+  apt-get autoremove -y autoconf automake build-essential cmake git-core wget > /dev/null 2>&1
