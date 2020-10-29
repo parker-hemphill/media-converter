@@ -12,7 +12,7 @@ ENV PUID=${PUID:-1000} \
     GROWL_PORT=${GROWL_PORT:-23053}
 
 # set container labels
-LABEL build_version="Media-Converter, Version: 2.0.0, Build-date: 22-Oct-2020" maintainer="parker-hemphill"
+LABEL build_version="Media-Converter, Version: 2.0.1, Build-date: 28-Oct-2020" maintainer="parker-hemphill"
 
 # Copy shell scripts to /opt
 COPY functions /opt/

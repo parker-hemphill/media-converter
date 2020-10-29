@@ -7,6 +7,12 @@ log=/log/media-converter.log
 # Pass encode to variable
 encode=$(cat /tmp/ENCODE)
 
+# Pass Growl options to variable
+growl_options=$(cat /tmp/GROWL)
+GROWL=$(echo "${growl_options}"|awk -F':' '{print $1}')
+GROWL_IP=$(echo "${growl_options}"|awk -F':' '{print $2}')
+GROWL_PORT=$(echo "${growl_options}"|awk -F':' '{print $3}')
+
 # Location to check for new media files
 movie_add="/media/Complete/Movies"
 tv_add="/media/Complete/TVShows"
@@ -40,18 +46,12 @@ print_ok(){ echo -e "${green}[OK]: ${1}${clear}"|tee -a ${log}; }
 
 # Use this as the function to send messages so it's easy to add new notification methods
 send_message(){
-  [[ ${GROWL} != NO ]] && growl_message "${1}"
+  [[ ${GROWL_IP} != '127.0.0.1' ]] && growl_message "${1}"
 }
 
 
-growl_message(){
+growl_message(){  
   gntp-send -a Media-Converter -n NOTIFY -s ${GROWL_IP}:${GROWL_PORT} Media-Converter "${1}"
-}
-
-
-container_create_time(){
-  # Create dummyfile so we can get creation date for container
-  [[ ! -f /var/tmp/.media-converter.create ]] && touch /var/tmp/.media-converter.create
 }
 
 
@@ -116,8 +116,8 @@ create_directory(){
 
 move_media(){
   # This ignores any files that might be sample media files (media under 50MB in size)
-  find "${tv_add}" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} ${tv_convert}/ \;
-  find "${movie_add}" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} ${movie_convert}/ \;
+  find "${tv_add}" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} "${tv_convert}" \;
+  find "${movie_add}" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} "${movie_convert}" \;
   # Remove left behind files older than 2 days
   find "${tv_add}/" -ctime +2 -exec rm -rf {} +
   find "${movie_add}/" -ctime +2 -exec rm -rf {} +
@@ -125,9 +125,9 @@ move_media(){
 
 
 convert_media(){
+  set_priority
   rm "${1}/*-converted.mp4" > /dev/null 2>&1
   rm "${1}/mkv-converted-*" > /dev/null 2>&1
-  set_priority
   # Check if $input is empty
   if [ ! -z "$(ls -A "${1}")" ]; then
     local input=$(/bin/ls -1t "${1}"|head -1)
@@ -232,14 +232,15 @@ convert_mkv(){
 handbrake_convert(){
   local input="${1}"
   local output="${input%\.*}-converted.mp4"
-  local output_import=$(echo "${output}"|sed -e 's/\/Convert\//\/IMPORT\//')
-  local output_import=$(echo "${output_import}"|sed -e 's/-converted//' -e 's/mkv-converted-//')
+  local output_import=$(echo "${output}"|sed -e 's/\/Convert\//\/IMPORT\//' -e 's/mkv-converted-//' -e 's/-converted//')
   local handbrake_options="${2}"
+  local encode_start_epoch=$(date +%s)
+  echo "${handbrake} ${handbrake_options} --input ${input} --output ${output}" >> /log/handbrake_command_history.log
   if nice ${nice_level} ${handbrake} ${handbrake_options} --input "${input}" --output "${output}" > /log/handbrake_output.log 2>&1; then
-    conversion_log "${input}" "${output}"
+    local encode_stop_epoch=$(date +%s)
+    conversion_log "${input}" "${output}" "${encode_stop_epoch}" "${encode_start_epoch}"
     print_ok "HandBrakeCLI converted ${input}"
     send_message "HandBrakeCLI converted ${input}"
-    echo "${handbrake} ${handbrake_options} --input ${input} --output ${output}" >> /log/handbrake_command_history.log
     mv "${output}" "${output_import}" && rm "${input}"
   else
     rm "${output}"
@@ -260,45 +261,82 @@ media_failure(){
 }
 
 
-set_priority(){
-  niceness=$(cat /tmp/MEDIA_SERVER)
-  if [[ ${niceness} == "no" ]]; then
-    nice_level='-0'
-  else
-    nice_level='-15'
-  fi
-}
-
-
 conversion_log(){
   local input="${1}"
   local output="${2}"
   local type=$(echo "${input}"|awk -F'/' '{print $5}')
   local input_size=$(ls -lh "${input}"|awk '{print $5}')
   local output_size=$(ls -lh "${output}"|awk '{print $5}')
-  local filename=$(echo "${input}"|awk -F'/' '{print $NF}')
-  while ((${#type} < 9)); do 
+  local filename=$(echo "${input}"|awk -F'/' '{print $NF}'|sed -e 's/mkv-converted-//')
+  local convert_time=$(calculate_conversion_time ${3} ${4})
+  while ((${#type} < 7)); do 
     local type+=' '
   done
-  while ((${#input_size} < 12)); do
+  while ((${#input_size} < 10)); do
     local input_size+=' '
   done
-  while ((${#output_size} < 12)); do
+  while ((${#output_size} < 10)); do
     local output_size+=' '
   done
-  if [[ ! -f /media/Logs/converted.log ]]; then
-    echo " Type   | Input     | Converted | Encoder | Filename" > /media/Logs/converted.log
-  fi 
-  echo "${type}|${input_size}|${output_size}|" ${encode}  "|${filename}" >> /media/Logs/converted.log
+  while ((${#encode} < 8)); do
+    local encode+=' '
+  done
+  while ((${#convert_time} < 10)); do
+    local convert_time+=' '
+  done
+  echo " ${type}| ${input_size}| ${output_size}| ${encode}| ${convert_time}| ${filename}" >> /media/Logs/converted.log
 }
+
+
+log_priority(){
+  niceness=$(cat /tmp/MEDIA_SERVER)
+  if [[ ${niceness} == "no" ]]; then
+    print_info "\"MEDIA_SERVER\" variable not set, leaving encoding priority at default"
+    send_message "\"MEDIA_SERVER\" variable not set, leaving encoding priority at default"
+  else
+    print_info "\"MEDIA_SERVER\" variable set, lowering encoding priority below default"
+    send_message "\"MEDIA_SERVER\" variable set, lowering encoding priority below default"
+  fi
+}
+
 
 set_priority(){
   niceness=$(cat /tmp/MEDIA_SERVER)
   if [[ ${niceness} == "no" ]]; then
     nice_level='-0'
-    print_info "\"MEDIA_SERVER\" variable not set, leaving encoding priority at default"
   else
     nice_level='-15'
-    print_info "\"MEDIA_SERVER\" variable set, lowering encoding priority below default"
   fi
+}
+
+
+container_creation_date(){
+  echo "Container built $(date -d @$(stat -c %Y /var/tmp/.media-converter.create))"|tee -a "${log}"
+}
+
+
+calculate_conversion_time(){
+  local -i raw_conversion_time=$(( ${1} - ${2} ))
+  min=0
+  hour=0
+  day=0
+  if((raw_conversion_time>59)); then
+    ((sec=raw_conversion_time%60))
+    ((raw_conversion_time=raw_conversion_time/60))
+    if((raw_conversion_time>59));then
+      ((min=raw_conversion_time%60))
+      ((raw_conversion_time=raw_conversion_time/60))
+      if((raw_conversion_time>23));then
+        ((hour=raw_conversion_time%24))
+        ((day=raw_conversion_time/24))
+      else
+        ((hour=raw_conversion_time))
+      fi
+    else
+      ((min=raw_conversion_time))
+    fi
+  else
+    ((sec=raw_conversion_time))
+  fi
+  echo"${day}d ${hour}h ${min}m ${sec}s"
 }

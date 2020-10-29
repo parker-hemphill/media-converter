@@ -111,3 +111,5 @@ echo "Creating \"/log\" directory inside container"; \
   chmod +xxx /opt/media-converter; \
 echo "Cleaning install packages and temp files"; \
   apt-get autoremove -y autoconf automake build-essential cmake git-core wget > /dev/null 2>&1
+echo "Creating Docker creation datestamp"
+  touch /var/tmp/.media-converter.create
