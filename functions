@@ -338,5 +338,5 @@ calculate_conversion_time(){
   else
     ((sec=raw_conversion_time))
   fi
-  echo"${day}d ${hour}h ${min}m ${sec}s"
+  echo "${day}d ${hour}h ${min}m ${sec}s"
 }
