@@ -1,4 +1,5 @@
 echo "Downloading updates and compiling binaries"
+  chmod a+x /usr/local/bin/status
   apt-get update > /dev/null 2>&1; \
   apt-get upgrade -y > /dev/null 2>&1; \
   apt-get install -y --no-install-recommends apt-utils > /dev/null 2>&1; \

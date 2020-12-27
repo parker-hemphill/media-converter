@@ -270,6 +270,7 @@ conversion_log(){
   local output_size=$(ls -lh "${output}"|awk '{print $5}')
   local filename=$(echo "${input}"|awk -F'/' '{print $NF}'|sed -e 's/mkv-converted-//')
   local convert_time=$(calculate_conversion_time ${3} ${4})
+  local encode=$(cat /tmp/ENCODE)
   while ((${#type} < 7)); do 
     local type+=' '
   done
@@ -285,7 +286,7 @@ conversion_log(){
   while ((${#convert_time} < 10)); do
     local convert_time+=' '
   done
-  echo " ${type}| ${input_size}| ${output_size}| ${encode}| ${convert_time}| ${filename}" >> /media/Logs/converted.log
+  echo "${type}| ${input_size}| ${output_size}| ${encode}| ${convert_time}| ${filename}" >> /media/Logs/converted.log
 }
 
 

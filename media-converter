@@ -30,6 +30,7 @@ container_setup(){
 
 
 container_setup
+touch /var/tmp/.media-converter.uptime
 while true; do
   sudo -u media bash -c "source /opt/functions;move_media"; \
   sudo -u media bash -c "source /opt/functions;set_priority;convert_media /media/Complete/Convert/TVShows"; \
