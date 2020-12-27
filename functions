@@ -196,7 +196,7 @@ set_framerate(){
 
 
 set_audio(){
-  local input="${input}"
+  local input="${1}"
   local -i channels="$(${mediainfo} --Inform='Audio;%Channels%' "${input}" | sed 's/[^0-9].*$//')"
   if ((${channels} > 2)); then
     local handbrake_options="${2} --aencoder ca_aac,copy:ac3"
@@ -209,22 +209,23 @@ set_audio(){
 
 convert_mkv(){
   local input="${1}"
+  local handbrake_options="${2}"
   # Convert file to MP4 with FFMPEG
   if [[ "${input: -4}" == ".mkv" ]]; then
     local output=$(echo "${input}"|sed -e 's/\/TVShows\//\/TVShows\/mkv-converted-/' -e 's/\/Movies\//\/Movies\/mkv-converted-/')
     local output="${output%.*}.mp4"
     if nice ${nice_level} ${ffmpeg} -threads 4 -i "${input}" -codec copy "${output}"; then
-      print_info "FFMPEG created ${output}"
+      print_info "FFMPEG created \"${output}\""
       rm "${input}"
-      handbrake_convert "${output}" "${2}"
+      handbrake_convert "${output}" "${handbrake_options}"
     else
-      print_error "FFMPEG convert of ${input} FAILED"
-      send_message "ERROR: FFMPEG convert of ${input} FAILED"
+      print_error "FFMPEG convert of \"${input}\" FAILED"
+      send_message "ERROR: FFMPEG convert of \"${input}\" FAILED"
       media_failure "${input}"
     fi
   else
     # No FFMPEG action needed
-    handbrake_convert "${input}" "${2}"
+    handbrake_convert "${input}" "${handbrake_options}"
   fi
 }
 
@@ -239,14 +240,14 @@ handbrake_convert(){
   if nice ${nice_level} ${handbrake} ${handbrake_options} --input "${input}" --output "${output}" > /log/handbrake_output.log 2>&1; then
     local encode_stop_epoch=$(date +%s)
     conversion_log "${input}" "${output}" "${encode_stop_epoch}" "${encode_start_epoch}"
-    print_ok "HandBrakeCLI converted ${input}"
-    send_message "HandBrakeCLI converted ${input}"
+    print_ok "HandBrakeCLI converted \"${input}\""
+    send_message "HandBrakeCLI converted \"${input}\""
     mv "${output}" "${output_import}" && rm "${input}"
   else
     rm "${output}"
     media_failure "${input}"
-    print_error "HandBrakeCLI convert of ${input} FAILED"
-    send_message "ERROR: HandBrakeCLI convert of ${input} FAILED"
+    print_error "HandBrakeCLI convert of \"${input}\" FAILED"
+    send_message "ERROR: HandBrakeCLI convert of \"${input}\" FAILED"
   fi
 }
 
