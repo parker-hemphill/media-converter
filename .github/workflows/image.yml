@@ -36,7 +36,7 @@ jobs:
           echo ::set-output name=buildx_args::--platform ${DOCKER_PLATFORMS} \
             --build-arg VERSION=${VERSION} \
             --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-            --build-arg VCS_REF=${GITHUB_SHA::8} 
+            --build-arg VCS_REF=${GITHUB_SHA::8} .
       -
         name: Set up Docker Buildx
         uses: crazy-max/ghaction-docker-buildx@v3
