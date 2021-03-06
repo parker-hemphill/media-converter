@@ -12,7 +12,7 @@ on:
 
 jobs:
   buildx:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       -
         name: Checkout
@@ -21,12 +21,15 @@ jobs:
         name: Prepare
         id: prepare
         run: |
-          DOCKER_IMAGE=parkerhemphill/media-converter
+          DOCKER_IMAGE=parker-hemphill/media-converter
           DOCKER_PLATFORMS=linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64
           VERSION=latest
 
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
           if [ "${{ github.event_name }}" = "schedule" ]; then
-            VERSION=latest
+            VERSION=nightly
           fi
 
           TAGS="--tag ${DOCKER_IMAGE}:${VERSION}"
@@ -56,10 +59,9 @@ jobs:
         name: Docker Buildx (push)
         if: success() && github.event_name != 'pull_request'
         run: |
-          docker buildx build --output "type=image,push=true" ${{ steps.prepare.outputs.buildx_args }}
+          docker buildx build --output "type=image,push=false" ${{ steps.prepare.outputs.buildx_args }}
       -
         name: Inspect image
         if: always() && github.event_name != 'pull_request'
         run: |
           docker buildx imagetools inspect ${{ steps.prepare.outputs.docker_image }}:${{ steps.prepare.outputs.version }}
-
