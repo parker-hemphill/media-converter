@@ -5,7 +5,7 @@ echo "Downloading updates and compiling binaries"
   apt-get install -y --no-install-recommends apt-utils > /dev/null 2>&1; \
   ln -s /opt/status /usr/local/bin/status > /dev/null 2>&1; \
   echo 'Set disable_coredump false' > /etc/sudo.conf; \
-  apt-get install -y --no-install-recommends autoconf automake build-essential ca-certificates cmake git git-core gntp-send gnutls-bin libass9 libass-dev libbz2-dev libfontconfig1-dev libfreetype6-dev libfribidi-dev libgnutls28-dev libharfbuzz-dev libjansson-dev liblzma-dev libmp3lame-dev libnuma-dev libogg-dev libopus-dev libsamplerate-dev libspeex-dev libtheora-dev libtool libtool-bin libturbojpeg0-dev libunistring-dev libvorbis-dev libva-dev libdrm-dev libvpx-dev libx264-dev libxcb-xfixes0-dev libxml2-dev m4 make mediainfo meson nasm ninja-build patch pkg-config procps python sudo tar texinfo tzdata wget yasm zlib1g-dev > /dev/null 2>&1; \
+  apt-get install -y --no-install-recommends autoconf automake build-essential ca-certificates cmake git git-core gntp-send gnutls-bin libass9 libass-dev libbz2-dev libfontconfig1-dev libfreetype6-dev libfribidi-dev libgnutls28-dev libharfbuzz-dev libjansson-dev liblzma-dev libmp3lame-dev libnuma-dev libogg-dev libopus-dev libsamplerate-dev libspeex-dev libtheora-dev libtool libtool-bin libturbojpeg0-dev libunistring-dev libvorbis-dev libva-dev libdrm-dev libvpx-dev libx264-dev libxcb-xfixes0-dev libxml2-dev m4 make mawk mediainfo meson nasm ninja-build patch pkg-config procps python sudo tar texinfo tzdata wget yasm zlib1g-dev > /dev/null 2>&1; \
   mkdir -p /tmp/ffmpeg_sources; \
   mkdir -p /tmp/handbrake; \
   mkdir -p /ffmpeg_build; \

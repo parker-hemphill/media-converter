@@ -1,29 +1,29 @@
 #Download base image debian
-FROM debian:latest
+FROM ubuntu:latest
 
 # Set default docker variables
 ENV PUID=${PUID:-1000} \
     PGID=${PGID:-1000} \
     TZ=${TZ:-America/New_York} \
     ENCODE=${ENCODE:-x264} \
-    MEDIA_SERVER=${MEDIA_SERVER:-no} \
-    GROWL=${GROWL:-NO} \
-    GROWL_IP=${GROWL_IP:-127.0.0.1} \
-    GROWL_PORT=${GROWL_PORT:-23053}
+    MEDIA_SERVER=${MEDIA_SERVER:-no}
 
 # set container labels
-LABEL build_version="Media-Converter, Version: 2.1.3 Build-date: 06-Mar-2021" maintainer="parker-hemphill"
+LABEL build_version="Media-Converter, Version: 2.1.4 Build-date: 2021-Mar-28" maintainer="parker-hemphill"
 
-# Copy shell scripts to /opt
+# Copy Handbrake and media-info compile script to /tmp
+COPY compile_binaries /tmp/
+
+# Copy shell script and functions to /opt
+COPY convert_media /opt/
 COPY functions /opt/
 COPY media-converter /opt/
-COPY compile_binaries /opt/
 
 # Copy status script to /usr/local/bin
 COPY status /usr/local/bin/
 
-# Set scripts as executable
-RUN /opt/compile_binaries
+# Compile HandBrakeCLI and media-info from latest source
+RUN /tmp/compile_binaries
 
 # Run the command on container start
 ENTRYPOINT ["/opt/media-converter"]

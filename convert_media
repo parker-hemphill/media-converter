@@ -1,0 +1,184 @@
+#!/bin/bash
+
+source /opt/functions
+
+MEDIA_SERVER="${1}"
+ENCODE="${2}"
+MEDIA_TYPE="${3}"
+
+# Location of binaries used by container
+handbrake=/usr/local/bin/HandBrakeCLI
+ffmpeg=/usr/local/bin/ffmpeg
+mediainfo=/usr/bin/mediainfo
+
+# Set niceness (Priority) of conversion process
+readonly nice_level=$(set_priority "${MEDIA_SERVER}")
+
+tv_or_movie(){
+  if [[ "${1}" == "TV" ]]; then
+    media_convert_directory="${!tv_convert}"
+    media_import_directory="${!tv_import}"
+  else
+    media_convert_directory="${!movie_convert}"
+    media_import_directory="${!movie_import}"
+  fi
+}
+
+handbrake_or_ffmpeg(){
+  if [[ "${input: -4}" == ".mkv" ]]; then
+    convert_mkv
+  else
+    convert_handbrake
+  fi
+}
+
+media_failure(){
+  print_info "Moving failed file \"${input}\" to \"${failed_dir}\""
+  mv "${input}" "${failed_dir}"
+  exit 1
+}
+
+convert_mkv(){
+  # Convert file to MP4 with FFMPEG
+  local -r output="${input/%.mkv/_mkv-converted.mp4}"
+  # Remove previous "output" file since it's most likely an incomplete conversion from container shutdown
+  if [[ -f "${output}" ]]; then
+    rm "${output}" > /dev/null 2>&1
+  fi
+  if nice ${nice_level} ${ffmpeg} -threads 4 -i "${input}" -codec copy "${output}"; then
+    print_info "FFMPEG converted \"${input}\""
+    rm "${input}" > /dev/null 2>&1
+    exit 0
+  else
+    print_error "FFMPEG conversion of \"${input}\" failed"
+    media_failure "${input}"
+    die
+  fi
+}
+
+convert_handbrake(){
+  container_format='mp4'
+  preset_options="--${ENCODE}-preset slow"
+  reference_frames_option=''
+  rate_tolerance_option=''
+  bitrate=''
+  rate_factor=''
+  frame_rate_options=''
+  ac3_bitrate='384'
+  crop='0:0:0:0'
+  size_options='--strict-anamorphic'
+  readonly width="$(${mediainfo} --Inform='Video;%Width%' "${input}")"
+  readonly height="$(${mediainfo} --Inform='Video;%Height%' "${input}")"
+  if ((width > 1280)) || ((height > 720)); then
+    reference_frames_option='ref=4:'
+    vbv_value='17500'
+    max_bitrate='4000'
+    size_options='--maxWidth 1280 --maxHeight 720 --loose-anamorphic'
+  elif ((width > 720)) || ((height > 576)); then
+    vbv_value='17500'
+    max_bitrate='4000'
+  else
+    vbv_value='12500'
+    if ((height > 480)); then
+      max_bitrate='1800'
+    else
+      max_bitrate='1500'
+    fi
+  fi
+  if [ "${rate_factor}" ]; then
+    rate_control_options="--quality ${rate_factor}"
+  else
+    rate_tolerance_option=':ratetol=inf'
+    if [ "${bitrate}" ]; then
+      if ((bitrate > vbv_value)); then
+        bitrate="${vbv_value}"
+      fi
+    else
+      readonly min_bitrate="$((max_bitrate / 2))"
+      bitrate="$(${mediainfo} --Inform='Video;%BitRate%' "${input}")"
+      if [ ! "$bitrate" ]; then
+        bitrate="$(${mediainfo} --Inform='General;%OverallBitRate%' "${input}")"
+        bitrate="$(((bitrate / 10) * 9))"
+      fi
+      if [ "${bitrate}" ]; then
+        bitrate="$(((bitrate / 5) * 4))"
+        bitrate="$((bitrate / 1000))"
+        bitrate="$(((bitrate / 100) * 100))"
+        if ((bitrate > max_bitrate)); then
+          bitrate="${max_bitrate}"
+        elif ((bitrate < min_bitrate)); then
+          bitrate="${min_bitrate}"
+        fi
+      else
+        bitrate="${min_bitrate}"
+      fi
+    fi
+    rate_control_options="--vb ${bitrate}"
+  fi
+  frame_rate="$(${mediainfo} --Inform='Video;%FrameRate_Original%' "${input}")"
+  if [ ! "${frame_rate}" ]; then
+    frame_rate="$(${mediainfo} --Inform='Video;%FrameRate%' "${input}")"
+  fi
+  if [ ! "${frame_rate_options}" ]; then
+    if [ "${frame_rate}" == '29.970' ]; then
+      frame_rate_options='--rate 23.976'
+    else
+      frame_rate_options='--rate 30 --pfr'
+    fi
+  fi
+  readonly audio_channels="$(${mediainfo} --Inform='Audio;%Channels%' "${input}" | sed 's/^\([0-9]\).*$/\1/')"
+  readonly audio_format="$(${mediainfo} --Inform='General;%Audio_Format_List%' "${input}" | sed 's| /.*||')"
+  if [ "${ac3_bitrate}" ] && ((audio_channels > 2)); then
+    readonly audio_bitrate="$(${mediainfo} --Inform='Audio;%BitRate%' "${input}")"
+    if [ "${audio_format}" == 'AC-3' ] && ((audio_bitrate <= (ac3_bitrate * 1000))); then
+      if [ "${container_format}" == 'mp4' ]; then
+        audio_options='--aencoder ca_aac,copy:ac3'
+      else
+        audio_options='--aencoder copy:ac3'
+      fi
+    elif [ "${container_format}" == 'mp4' ]; then
+      audio_options="--aencoder ca_aac,ac3 --ab ,$ac3_bitrate"
+    else
+      audio_options="--aencoder ac3 --ab $ac3_bitrate"
+    fi
+  elif [ "${audio_format}" == 'AAC' ]; then
+    audio_options='--aencoder copy:aac'
+  else
+    audio_options=''
+  fi
+  if [ "${frame_rate}" == '29.970' ]; then
+    filter_options='--detelecine'
+  else
+    filter_options=''
+  fi
+  subtitle_options=''
+  ${handbrake} \
+        --markers \
+        ${container_format}_options \
+        --encoder x264 \
+        $preset_options \
+        --encopts ${reference_frames_option}vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} \
+        ${rate_control_options} \
+        ${frame_rate_options} \
+        ${audio_options} \
+        --crop ${crop} \
+        ${size_options} \
+        ${filter_options} \
+        ${subtitle_options} \
+        --input "${input}" \
+        --output "${output}"
+}
+
+main(){
+  tv_or_movie "${MEDIA_TYPE}"
+  if [[ -z "$(ls -A "${media_convert_directory}")" ]]; then
+    readonly input=$(ls -1t "${media_convert_directory}"|head -1)
+  else
+    exit 0
+  fi
+  # Remove previous "converted" file since it's most likely an incomplete conversion from container shutdown
+  rm "${media_convert_directory}/*-converted.mp4" > /dev/null 2>&1
+  handbrake_or_ffmpeg
+}
+
+main

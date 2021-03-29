@@ -1,6 +1,6 @@
 # parkerhemphill/media-converter
 ## A simple docker image that uses FFMPEG, media-info, and HandBrakeCLI to convert downloaded media into mp4
-## Current Version: 2.1.3 updated 06-Mar-2020
+## Current Version: 2.1.4 updated 2021-Mar-28
 ## NEW: Uses GitHub actions to rebuild with latest libraries every Sunday at midnight UTC.
 ### Update: 2.1.3 adds ARM support to image
 ### Update: 2.0.0 compiles the latest HandBrake and FFMPEG from source each time you build the container with the dockerfile.  Regular updates to the container also ensure any images pulled from dockerhub will also have a recent version of HandBrake and FFMPEG
@@ -18,7 +18,7 @@
 * 3: Completed file is moved to `'<volume>/Complete/IMPORT/<TVShows|Movies>'`, ready to be ingested by SickChill, etc. into Plex/Jellyfin/Kodi library
   
 ### Notes:
-* Growl Notifications for macOS users.  Simply pass GROWL=YES, GROWL_IP=<mac_ip>, and GROWL_PORT=<growl_port> ENV variables
+* ~~Growl Notifications for macOS users.  Simply pass GROWL=YES, GROWL_IP=<mac_ip>, and GROWL_PORT=<growl_port> ENV variables~~
 * The option to choose h264 or HVEC (h265) has been added to the image, simply pass **"- ENCODE=<x264|x265>"** to environment for container (**Defaults to h264 if variable isn't set**) 
 * All files converted are added to a logfile located at **\<volume\>/Logs/converted.log**
 * Upon start-up container will check if '\<volume\>' is writeable by PUID and create the needed directories if they don't exist
@@ -47,17 +47,9 @@ services:
       - PGID=1000
       - TZ=America/New_York
       - ENCODE=x264
-      - GROWL=YES #Optional, enabled growl notifications from container (Defaults to no if not provided)
-      - GROWL_IP=10.0.0.150 #Optional, set to IP address of PC you wish to recieve Growl notifications
-      - GROWL_PORT=23053 #Optional, only needed if you are using something other than default Growl port
     volumes:
       - /media/media:/media
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pgrep -f '/bin/bash /opt/media-converter' >/dev/null || exit 1"]
-      interval: 60s
-      timeout: 5s
-      retries: 5
 ```
 ## Docker run example
 * In this example I use `'/media/media'` as the mount point on my server and UID "1000" to map my primary user to the container.  You can get the needed UID/GID by running `id <USER_NAME>`.  I.E. `id plex`
@@ -70,21 +62,6 @@ docker run -d \
   -e PGID=1000 \
   -e TZ=America/New_York \
   -e ENCODE=x264 \
-  -v /media/media:/media \
-  --restart unless-stopped \
-  parkerhemphill/media-converter:latest
-```
-* Same example as above but with Growl notifications included.  Be sure to change **GROWL_IP** and **GROWL_PORT** to match your settings
-```
-docker run -d \
-  --name=media-converter \
-  -e PUID=1000 \
-  -e PGID=1000 \
-  -e TZ=America/New_York \
-  -e ENCODE=x264 \
-  -e GROWL=YES \
-  -e GROWL_IP=10.0.0.150 \
-  -e GROWL_PORT=23053 \
   -v /media/media:/media \
   --restart unless-stopped \
   parkerhemphill/media-converter:latest
