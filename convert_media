@@ -57,6 +57,7 @@ convert_mkv(){
 }
 
 convert_handbrake(){
+  local -r output="${input/%.mp4/-converted.mp4}"
   container_format='mp4'
   preset_options="--${ENCODE}-preset slow"
   reference_frames_option=''
@@ -152,21 +153,12 @@ convert_handbrake(){
     filter_options=''
   fi
   subtitle_options=''
-  ${handbrake} \
-        --markers \
-        ${container_format}_options \
-        --encoder x264 \
-        $preset_options \
-        --encopts ${reference_frames_option}vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} \
-        ${rate_control_options} \
-        ${frame_rate_options} \
-        ${audio_options} \
-        --crop ${crop} \
-        ${size_options} \
-        ${filter_options} \
-        ${subtitle_options} \
-        --input "${input}" \
-        --output "${output}"
+  if [[ $(${handbrake} --markers ${container_format}_options --encoder x264 ${preset_options} --encopts ${reference_frames_option}vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} ${subtitle_options} --input "${input}" --output "${output}") ]]; then
+    rm "${input}"
+  else
+    media_failure "${input}"
+    die
+  fi
 }
 
 main(){

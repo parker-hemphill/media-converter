@@ -1,5 +1,5 @@
 #Download base image debian
-FROM ubuntu:latest
+FROM debian:latest
 
 # Set default docker variables
 ENV PUID=${PUID:-1000} \
