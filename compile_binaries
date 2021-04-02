@@ -106,10 +106,8 @@ echo "[10 of 10] Compiling HandbrakeCLI"; \
   make --directory=build install > /dev/null 2>&1; \
   cd /tmp; \
   rm -rf * > /dev/null 2>&1; \
-echo "Creating \"/log\" directory inside container"; \
-  mkdir /log; \
-  chmod +rwrwrw /log; \
   chmod +xxx /opt/media-converter; \
+  chmod +xxx /opt/convert_media; \
 echo "Cleaning install packages and temp files"; \
   apt-get autoremove -y autoconf automake build-essential cmake git-core wget > /dev/null 2>&1
 echo "Creating Docker creation datestamp"

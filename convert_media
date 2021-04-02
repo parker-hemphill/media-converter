@@ -16,11 +16,11 @@ readonly nice_level=$(set_priority "${MEDIA_SERVER}")
 
 tv_or_movie(){
   if [[ "${1}" == "TV" ]]; then
-    media_convert_directory="${!tv_convert}"
-    media_import_directory="${!tv_import}"
+    media_convert_directory="${tv_convert}"
+    media_import_directory="${tv_import}"
   else
-    media_convert_directory="${!movie_convert}"
-    media_import_directory="${!movie_import}"
+    media_convert_directory="${movie_convert}"
+    media_import_directory="${movie_import}"
   fi
 }
 

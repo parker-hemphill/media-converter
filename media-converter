@@ -11,13 +11,12 @@ container_setup(){
   add_user "${PUID}" "${PGID}"
   set_timezone "${TZ}"
   check_mount
-  for directory in failed_dir log_dir movie_add tv_add movie_convert tv_convert movie_import tv_import; do
+  for directory in failed_dir log_dir media_base movie_add tv_add movie_convert tv_convert movie_import tv_import; do
     create_directory "${!directory}"
   done
   setup_logfile
   nohup bash -c 'while true; do sleep 1; touch /var/tmp/.media-converter.uptime; done' &
   print_priority_info
-  container_creation_date
 }
 
 media_converter_loop(){

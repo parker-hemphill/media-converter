@@ -14,17 +14,20 @@ failed_dir="/media/FAILED"
 log_dir="/media/log"
 log="${log_dir}/media-converter.log"
 
+# Base directory for media files
+media_base="/media/Complete"
+
 # Location to check for new media files
-movie_add="/media/Complete/Movies"
-tv_add="/media/Complete/TVShows"
+movie_add="${media_base}/Movies"
+tv_add="${media_base}/TVShows"
 
 # Location to move media files to for conversion
-movie_convert="/media/Complete/Convert/Movies"
-tv_convert="/media/Complete/Convert/TVShows"
+movie_convert="${media_base}/Convert/Movies"
+tv_convert="${media_base}/Convert/TVShows"
 
 # Location to move media files to for ingestion by SickChill, CoachPotato, etc
-movie_import="/media/Complete/IMPORT/Movies"
-tv_import="/media/Complete/IMPORT/TVShows"
+movie_import="${media_base}/IMPORT/Movies"
+tv_import="${media_base}/IMPORT/TVShows"
 
 # Location of binaries used by container
 handbrake=/usr/local/bin/HandBrakeCLI
@@ -61,10 +64,12 @@ container_uptime(){
 
 # Add "media" user and group, and map them to provided UID/GID or 1000 if not provided
 add_user(){
-  groupadd -g "${2}" media
-  useradd -s /bin/bash -m -u "${1}" -g media media
-  print_info "\"media\" user is mapped to external UID $(id -u media)"
-  print_info "\"media\" group is mapped to external GID $(id -g media)"
+  if [[ ! $(grep 'media' /etc/passwd) ]]; then
+    groupadd -g "${2}" media
+    useradd -s /bin/bash -m -u "${1}" -g media media
+    print_info "\"media\" user is mapped to external UID $(id -u media)"
+    print_info "\"media\" group is mapped to external GID $(id -g media)"
+  fi
 }
 
 # Set timezone inside container for logfile entries
