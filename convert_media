@@ -3,7 +3,7 @@
 source /opt/functions
 
 MEDIA_SERVER="${1}"
-ENCODE="${2}"
+encode="${2}"
 MEDIA_TYPE="${3}"
 
 # Location of binaries used by container
@@ -58,23 +58,23 @@ convert_mkv(){
 
 convert_handbrake(){
   local -r output="${input/%.mp4/-converted.mp4}"
+  # Remove previous "output" file since it's most likely an incomplete conversion from container shutdown
+  if [[ -f "${output}" ]]; then
+    rm "${output}" > /dev/null 2>&1
+  fi
   container_format='mp4'
-  preset_options="--${ENCODE}-preset slow"
-  reference_frames_option=''
   rate_tolerance_option=''
   bitrate=''
   rate_factor=''
   frame_rate_options=''
   ac3_bitrate='384'
   crop='0:0:0:0'
-  size_options='--strict-anamorphic'
   readonly width="$(${mediainfo} --Inform='Video;%Width%' "${input}")"
   readonly height="$(${mediainfo} --Inform='Video;%Height%' "${input}")"
   if ((width > 1280)) || ((height > 720)); then
-    reference_frames_option='ref=4:'
     vbv_value='17500'
     max_bitrate='4000'
-    size_options='--maxWidth 1280 --maxHeight 720 --loose-anamorphic'
+    size_options='--maxWidth 1280 --maxHeight 720 '
   elif ((width > 720)) || ((height > 576)); then
     vbv_value='17500'
     max_bitrate='4000'
@@ -153,8 +153,10 @@ convert_handbrake(){
     filter_options=''
   fi
   subtitle_options=''
-  if [[ $(${handbrake} --markers ${container_format}_options --encoder x264 ${preset_options} --encopts ${reference_frames_option}vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} ${subtitle_options} --input "${input}" --output "${output}") ]]; then
-    rm "${input}"
+  echo "HANDBRAKE Options: ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} ${subtitle_options} --input \"${input}\" --output \"${output}\""
+  nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} ${subtitle_options} --input "${input}" --output "${output}"
+  if [[ $? -eq 0 ]]; then
+    rm "${input}" > /dev/null 2>&1
   else
     media_failure "${input}"
     die
@@ -163,13 +165,12 @@ convert_handbrake(){
 
 main(){
   tv_or_movie "${MEDIA_TYPE}"
-  if [[ -z "$(ls -A "${media_convert_directory}")" ]]; then
-    readonly input=$(ls -1t "${media_convert_directory}"|head -1)
+  if [[ "$(ls -A "${media_convert_directory}")" ]]; then
+    input=$(ls -1t "${media_convert_directory}"|head -1)
+    input="${media_convert_directory}/${input}"
   else
     exit 0
   fi
-  # Remove previous "converted" file since it's most likely an incomplete conversion from container shutdown
-  rm "${media_convert_directory}/*-converted.mp4" > /dev/null 2>&1
   handbrake_or_ffmpeg
 }
 

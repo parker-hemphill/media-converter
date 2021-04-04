@@ -10,6 +10,9 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Location for failed media conversion files
 failed_dir="/media/FAILED"
 
+# Set encode from docker options
+encode=${ENCODE}
+
 # Location to create log file
 log_dir="/media/log"
 log="${log_dir}/media-converter.log"
@@ -98,23 +101,24 @@ check_mount(){
 
 # Create directory passed to function and set ownership to \"media\" user"
 create_directory(){
-  if [[ -d "${1}" ]]; then
-    directory_writeable "${1}"
+  local -r directory="${1}"
+  if [[ -d "${directory}" ]]; then
+    directory_writeable "${directory}"
   else
-    if [[ $(mkdir -p "${1}") ]]; then
-      print_ok "Created ${1}"
-    fi
-    if [[ ! $(chown media:media "${1}") ]]; then
-      print_error "Unable to set ownership of ${1} to UID ${PUID}"
+    if [[ $(mkdir -p "${directory}") ]]; then
+      print_ok "Created ${directory}"
+    else
+      print_error "Unable to create ${directory}"
       die
     fi
+    chown media:media "${directory}"
   fi
 }
 
 # Print niceness level for logfile
 print_priority_info(){
   if [[ ${MEDIA_SERVER} == "no" ]]; then
-    print_info "\"MEDIA_SERVER\" variable set to ${MEDIA_SERVR}, leaving default niceness for converter functions"
+    print_info "\"MEDIA_SERVER\" variable set to ${MEDIA_SERVER}, leaving default niceness for converter functions"
   else
     print_info "\"MEDIA_SERVER\" variable set to ${MEDIA_SERVER}, lowering niceness for converter functions"
   fi
@@ -140,9 +144,13 @@ directory_writeable(){
 
 move_media(){
   # This ignores any files that might be sample media files (TV shows under 50MB in size and Movies under 500MB)
-  find "${tv_add}" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} "${tv_convert}" \;
-  find "${movie_add}" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} "${movie_convert}" \;
-  # Remove left behind files older than 2 days
-  find "${tv_add}/" -ctime +2 -exec rm -rf {} +
-  find "${movie_add}/" -ctime +2 -exec rm -rf {} +
+  if [[ "$(ls -A "${tv_add}")" ]]; then
+    find "${tv_add}/" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} "${tv_convert}/" \;
+  fi
+  if [[ "$(ls -A "${movie_add}")" ]]; then
+    find "${movie_add}/" -type f -not -name '*sample*' -size +500M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} "${movie_convert}/" \;
+  fi
+  # Remove left behind files older than 7 days
+  find "${tv_add}/" -ctime +7 -exec rm {} +
+  find "${movie_add}/" -ctime +7 -exec rm {} +
 }
