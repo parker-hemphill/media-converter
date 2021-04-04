@@ -14,21 +14,28 @@ mediainfo=/usr/bin/mediainfo
 # Set niceness (Priority) of conversion process
 readonly nice_level=$(set_priority "${MEDIA_SERVER}")
 
-tv_or_movie(){
+get_media_convert_directory(){
   if [[ "${1}" == "TV" ]]; then
-    media_convert_directory="${tv_convert}"
-    media_import_directory="${tv_import}"
+    echo "${tv_convert}"
   else
-    media_convert_directory="${movie_convert}"
-    media_import_directory="${movie_import}"
+    echo "${movie_convert}"
+  fi
+}
+
+get_media_import_directory(){
+  if [[ "${1}" == "TV" ]]; then
+    echo "${tv_import}"
+  else
+    echo "${movie_import}"
   fi
 }
 
 handbrake_or_ffmpeg(){
+  local -r input="${2}/${3}"
   if [[ "${input: -4}" == ".mkv" ]]; then
-    convert_mkv
+    convert_mkv "${1}" "${2}" "${3}"
   else
-    convert_handbrake
+    convert_handbrake "${1}" "${2}" "${3}"
   fi
 }
 
@@ -40,14 +47,16 @@ media_failure(){
 
 convert_mkv(){
   # Convert file to MP4 with FFMPEG
-  local -r output="${input/%.mkv/_mkv-converted.mp4}"
+  local -r input_file="${3}"
+  local -r media_input_dir="${2}"
+  local -r input="${media_input_dir}/${input_file}"
+  local -r output="${media_input_dir}/mkv-converted_${input_file/%.mkv/.mp4}"
   # Remove previous "output" file since it's most likely an incomplete conversion from container shutdown
-  if [[ -f "${output}" ]]; then
-    rm "${output}" > /dev/null 2>&1
-  fi
-  if nice ${nice_level} ${ffmpeg} -threads 4 -i "${input}" -codec copy "${output}"; then
+  rm "${media_input_dir}/mkv-converted_*.mp4" > /dev/null 2>&1
+  nice ${nice_level} ${ffmpeg} -threads 4 -i "${input}" -codec copy "${output}"
+  if [[ $? -eq 0 ]]; then
     print_info "FFMPEG converted \"${input}\""
-    rm "${input}" > /dev/null 2>&1
+    rm "${input}"
     exit 0
   else
     print_error "FFMPEG conversion of \"${input}\" failed"
@@ -57,11 +66,13 @@ convert_mkv(){
 }
 
 convert_handbrake(){
-  local -r output="${input/%.mp4/-converted.mp4}"
+  local -r input_file="${3}"
+  local -r media_input_dir="${2}"
+  local -r media_output_dir="${1}"
+  local -r input="${media_input_dir}/${input_file}"
+  local -r output="${media_input_dir}/${input_file/%.mp4/-converted.mp4}"
   # Remove previous "output" file since it's most likely an incomplete conversion from container shutdown
-  if [[ -f "${output}" ]]; then
-    rm "${output}" > /dev/null 2>&1
-  fi
+  rm "${media_output_dir}/*-converted.mp4" > /dev/null 2>&1
   container_format='mp4'
   rate_tolerance_option=''
   bitrate=''
@@ -152,11 +163,11 @@ convert_handbrake(){
   else
     filter_options=''
   fi
-  subtitle_options=''
-  echo "HANDBRAKE Options: ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} ${subtitle_options} --input \"${input}\" --output \"${output}\""
-  nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} ${subtitle_options} --input "${input}" --output "${output}"
+  echo "HANDBRAKE Options: ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input \"${input}\" --output \"${output}\""
+  nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input "${input}" --output "${output}"
   if [[ $? -eq 0 ]]; then
     rm "${input}" > /dev/null 2>&1
+    mv "${output}" "${media_output_dir}/"
   else
     media_failure "${input}"
     die
@@ -164,14 +175,15 @@ convert_handbrake(){
 }
 
 main(){
-  tv_or_movie "${MEDIA_TYPE}"
+  readonly media_convert_directory=$(get_media_convert_directory "${MEDIA_TYPE}")
+  readonly media_import_directory=$(get_media_import_directory "${MEDIA_TYPE}")
   if [[ "$(ls -A "${media_convert_directory}")" ]]; then
-    input=$(ls -1t "${media_convert_directory}"|head -1)
-    input="${media_convert_directory}/${input}"
+    local -r input=$(ls -1t "${media_convert_directory}"|head -1)
   else
     exit 0
   fi
-  handbrake_or_ffmpeg
+  handbrake_or_ffmpeg "${media_import_directory}" "${media_convert_directory}" "${input}"
+  exit 0
 }
 
 main
