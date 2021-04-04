@@ -58,6 +58,7 @@ die(){
 print_error(){ echo -e "${red}[ERROR]: ${1}${clear}"|tee -a ${log}; }
 print_warning(){ echo -e "${yellow}[WARNING]: ${1}${clear}"|tee -a ${log}; }
 print_info(){ echo -e "${white}${1}${clear}"|tee -a ${log}; }
+print_notice(){ echo -e "${white}[NOTICE]: ${1}${clear}"|tee -a ${log}; }
 print_ok(){ echo -e "${green}[OK]: ${1}${clear}"|tee -a ${log}; }
 
 # Set mod time of dummyfile so we can generate uptime for container
