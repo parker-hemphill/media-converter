@@ -69,7 +69,7 @@ main(){
   print_info "$(movie_grammar) waiting to be encoded\n"
   [[ $(pgrep ffmpeg) ]] && print_notice "FFMPEG is running"
   if [[ $(pgrep HandBrakeCLI) ]]; then
-    print_notice "HandBrake is converting:\n$(ps -ef|grep -o "\-\-output.*"|sed -e 's/\-\-output \/media\/Complete\/Convert\/.*\///' -e 's/\-converted\.mp4//')\n\t$(grep Encoding /log/handbrake_output.log|tail -1|mawk -F',' '{print $2$NF}')"
+    print_notice "HandBrake is converting:\n$(ps -ef|grep -o "\-\-output.*"|sed -e 's/\-\-output \/media\/Complete\/Convert\/.*\///' -e 's/\-converted\.mp4//')"
   else
     print_notice "No current encode jobs running"
   fi

@@ -15,7 +15,7 @@ container_setup(){
     create_directory "${!directory}"
   done
   setup_logfile
-  nohup bash -c 'while true; do sleep 1; touch /var/tmp/.media-converter.uptime; done' &
+  nohup bash -c 'touch /var/tmp/.media-converter.uptime'
   print_priority_info
 }
 
