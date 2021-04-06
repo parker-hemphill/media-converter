@@ -42,7 +42,7 @@ handbrake_or_ffmpeg(){
 media_failure(){
   print_info "Moving failed file \"${input}\" to \"${failed_dir}\""
   mv "${input}" "${failed_dir}"
-  "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${failed_media_log}"
+  echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${failed_media_log}"
   exit 1
 }
 
