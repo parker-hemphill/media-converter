@@ -42,6 +42,7 @@ handbrake_or_ffmpeg(){
 media_failure(){
   print_info "Moving failed file \"${input}\" to \"${failed_dir}\""
   mv "${input}" "${failed_dir}"
+  "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${failed_media_log}"
   exit 1
 }
 
@@ -57,6 +58,7 @@ convert_mkv(){
   if [[ $? -eq 0 ]]; then
     print_info "FFMPEG converted \"${input}\""
     rm "${input}"
+    echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mkv_media_log}"
     exit 0
   else
     print_error "FFMPEG conversion of \"${input}\" failed"
@@ -163,10 +165,11 @@ convert_handbrake(){
   else
     filter_options=''
   fi
-  echo "HANDBRAKE Options: ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input \"${input}\" --output \"${output}\""
+  echo "HANDBRAKE Options: nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input \"${input}\" --output \"${output}\""| tee -a "${media_handbrake_log}"
   nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input "${input}" --output "${output}"
   if [[ $? -eq 0 ]]; then
     rm "${input}" > /dev/null 2>&1
+    echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mp4_media_log}${MEDIA_TYPE}.log"
     mv "${output}" "${media_output_dir}/"
   else
     media_failure "${input}"
@@ -177,6 +180,10 @@ convert_handbrake(){
 main(){
   readonly media_convert_directory=$(get_media_convert_directory "${MEDIA_TYPE}")
   readonly media_import_directory=$(get_media_import_directory "${MEDIA_TYPE}")
+  readonly mkv_media_log="${mkvlog}${MEDIA_TYPE}.log"
+  readonly mp4_media_log="${mp4log}${MEDIA_TYPE}.log"
+  readonly failed_media_log="${failedlog}${MEDIA_TYPE}.log"
+  readonly media_handbrake_log="${handbrake_log}${MEDIA_TYPE}.log"
   if [[ "$(ls -A "${media_convert_directory}")" ]]; then
     local -r input=$(ls -1t "${media_convert_directory}"|head -1)
   else

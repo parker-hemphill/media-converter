@@ -13,9 +13,13 @@ failed_dir="/media/FAILED"
 # Set encode from docker options
 encode=${ENCODE}
 
-# Location to create log file
-log_dir="/media/log"
-log="${log_dir}/media-converter.log"
+# Location to create log files
+readonly log_dir="/media/log"
+readonly log="${log_dir}/container.log"
+readonly handbrake_log="${log_dir}/HandBrake_Options_"
+readonly mkvlog="${log_dir}/converted-mkv_"
+readonly mp4log="${log_dir}/converted-mp4_"
+readonly failedlog="${log_dir}/FAILED_"
 
 # Base directory for media files
 media_base="/media/Complete"
@@ -86,10 +90,14 @@ set_timezone(){
 
 # Setup logfile
 setup_logfile(){
-  if [[ ! -f "${log}" ]]; then
-    echo " Type   | Input     | Converted | Encoder | Time      | Filename" >> "${log}"
-  fi
-  chown media:media "${log}" || die
+  for media_type in TV MOVIE; do
+    for logfile in mkvlog mp4log failedlog handbrake_log; do
+    if [[ ! -f "${!logfile}${media_type}.log" ]]; then
+      touch "${!logfile}${media_type}.log"
+      chown media:media "${!logfile}${media_type}.log"
+    fi
+    done
+  done
 }
 
 # Check if /media is mounted to an external volume and writeable by media user
