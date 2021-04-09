@@ -2,6 +2,13 @@
 
 source /opt/functions
 
+# Create status messages without logging
+print_error(){ echo -e "${red}[ERROR]: ${1}${clear}"; }
+print_warning(){ echo -e "${yellow}[WARNING]: ${1}${clear}"; }
+print_info(){ echo -e "${white}${1}${clear}"; }
+print_notice(){ echo -e "${white}[NOTICE]: ${1}${clear}"; }
+print_ok(){ echo -e "${green}[OK]: ${1}${clear}"; }
+
 # Generate uptime and container creation time
 get_container_uptime(){
   container_start=$(stat -c %Y /var/tmp/.media-converter.uptime)

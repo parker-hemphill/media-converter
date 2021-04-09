@@ -1,6 +1,6 @@
 # parkerhemphill/media-converter
 ## A simple docker image that uses FFMPEG, media-info, and HandBrakeCLI to convert downloaded media into mp4
-## Current Version: 2.1.5 updated 2021-Apr-05
+## Current Version: 2.1.6 updated 2021-Apr-09
 ## NEW: Uses GitHub actions to rebuild with latest libraries every Sunday at midnight UTC.
 ### Update: 2.1.3 adds ARM support to image
 ### Update: 2.0.0 compiles the latest HandBrake and FFMPEG from source each time you build the container with the dockerfile.  Regular updates to the container also ensure any images pulled from dockerhub will also have a recent version of HandBrake and FFMPEG

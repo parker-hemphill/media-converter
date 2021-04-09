@@ -52,8 +52,6 @@ convert_mkv(){
   local -r media_input_dir="${2}"
   local -r input="${media_input_dir}/${input_file}"
   local -r output="${media_input_dir}/mkv-converted_${input_file/%.mkv/.mp4}"
-  # Remove previous "output" file since it's most likely an incomplete conversion from container shutdown
-  rm "${media_input_dir}/mkv-converted_*.mp4" > /dev/null 2>&1
   nice ${nice_level} ${ffmpeg} -threads 4 -i "${input}" -codec copy "${output}"
   if [[ $? -eq 0 ]]; then
     print_info "FFMPEG converted \"${input}\""
@@ -73,8 +71,6 @@ convert_handbrake(){
   local -r media_output_dir="${1}"
   local -r input="${media_input_dir}/${input_file}"
   local -r output="${media_input_dir}/${input_file/%.mp4/-converted.mp4}"
-  # Remove previous "output" file since it's most likely an incomplete conversion from container shutdown
-  rm "${media_output_dir}/*-converted.mp4" > /dev/null 2>&1
   container_format='mp4'
   rate_tolerance_option=''
   bitrate=''
@@ -165,7 +161,7 @@ convert_handbrake(){
   else
     filter_options=''
   fi
-  echo "HANDBRAKE Options: nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input \"${input}\" --output \"${output}\""| tee -a "${media_handbrake_log}"
+  echo "nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input \"${input}\" --output \"${output}\""| tee -a "${media_handbrake_log}"
   nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input "${input}" --output "${output}"
   if [[ $? -eq 0 ]]; then
     rm "${input}" > /dev/null 2>&1
@@ -184,6 +180,9 @@ main(){
   readonly mp4_media_log="${mp4log}${MEDIA_TYPE}.log"
   readonly failed_media_log="${failedlog}${MEDIA_TYPE}.log"
   readonly media_handbrake_log="${handbrake_log}${MEDIA_TYPE}.log"
+  # Remove previous "output" file since it's an incomplete conversion from container shutdown
+  rm "${media_convert_directory}/mkv-converted_*.mp4" > /dev/null 2>&1
+  rm "${media_convert_directory}/*-converted.mp4" > /dev/null 2>&1
   if [[ "$(ls -A "${media_convert_directory}")" ]]; then
     local -r input=$(ls -1t "${media_convert_directory}"|head -1)
   else
