@@ -169,7 +169,7 @@ convert_handbrake(){
   nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input "${input}" --output "${output}"
   if [[ $? -eq 0 ]]; then
     rm "${input}" > /dev/null 2>&1
-    echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mp4_media_log}${MEDIA_TYPE}.log"
+    echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mp4_media_log}"
     mv "${output}" "${media_output_dir}/"
   else
     media_failure "${input}"
