@@ -50,13 +50,19 @@ convert_mkv(){
   # Convert file to MP4 with FFMPEG
   local -r input_file="${3}"
   local -r media_input_dir="${2}"
+  local -r media_import_directory="${1}"
   local -r input="${media_input_dir}/${input_file}"
   local -r output="${media_input_dir}/mkv-converted_${input_file/%.mkv/.mp4}"
+  # Remove previous "output" file since it's an incomplete conversion from container shutdown
+  if [[ $(ls -A "${output}") ]]; then
+    rm "${output}"
+  fi
   nice ${nice_level} ${ffmpeg} -threads 4 -i "${input}" -codec copy "${output}"
   if [[ $? -eq 0 ]]; then
     print_info "FFMPEG converted \"${input}\""
     rm "${input}"
     echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mkv_media_log}"
+    mv "${output}" "${media_input_dir}/${input_file/%.mkv/.mp4}"
     exit 0
   else
     print_error "FFMPEG conversion of \"${input}\" failed"
@@ -181,7 +187,6 @@ main(){
   readonly failed_media_log="${failedlog}${MEDIA_TYPE}.log"
   readonly media_handbrake_log="${handbrake_log}${MEDIA_TYPE}.log"
   # Remove previous "output" file since it's an incomplete conversion from container shutdown
-  rm "${media_convert_directory}/mkv-converted_*.mp4" > /dev/null 2>&1
   rm "${media_convert_directory}/*-converted.mp4" > /dev/null 2>&1
   if [[ "$(ls -A "${media_convert_directory}")" ]]; then
     local -r input=$(ls -1t "${media_convert_directory}"|head -1)
