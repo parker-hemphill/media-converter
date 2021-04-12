@@ -3,7 +3,7 @@
 source /opt/functions
 
 MEDIA_SERVER="${1}"
-encode="${2}"
+ENCODE="${2}"
 MEDIA_TYPE="${3}"
 
 # Location of binaries used by container
@@ -32,7 +32,8 @@ get_media_import_directory(){
 
 handbrake_or_ffmpeg(){
   local -r input="${2}/${3}"
-  if [[ "${input: -4}" == ".mkv" ]]; then
+  local -r input_extension="${input^^}"
+  if [[ "${input_extension: -4}" == ".MKV" ]]; then
     convert_mkv "${1}" "${2}" "${3}"
   else
     convert_handbrake "${1}" "${2}" "${3}"
@@ -40,8 +41,9 @@ handbrake_or_ffmpeg(){
 }
 
 media_failure(){
-  print_info "Moving failed file \"${input}\" to \"${failed_dir}\""
-  mv "${input}" "${failed_dir}"
+  print_info "Conversion of  \"${input}\" failed"
+  touch -t 8001031305 "${input_file}"
+  print_warning "${input_file} conversion failed"
   echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${failed_media_log}"
   exit 1
 }
@@ -52,7 +54,7 @@ convert_mkv(){
   local -r media_input_dir="${2}"
   local -r media_import_directory="${1}"
   local -r input="${media_input_dir}/${input_file}"
-  local -r output="${media_input_dir}/mkv-converted_${input_file/%.mkv/.mp4}"
+  local -r output="$(echo "${media_input_dir}/mkv-converted_${input_file}"| sed 's/....$/\.mp4/')"
   # Remove previous "output" file since it's an incomplete conversion from container shutdown
   if [[ $(ls -A "${output}") ]]; then
     rm "${output}"
@@ -76,7 +78,7 @@ convert_handbrake(){
   local -r media_input_dir="${2}"
   local -r media_output_dir="${1}"
   local -r input="${media_input_dir}/${input_file}"
-  local -r output="${media_input_dir}/${input_file/%.mp4/-converted.mp4}"
+  local -r output="$(echo "${media_input_dir}/${input_file}"| sed 's/....$/-converted\.mp4/')"
   container_format='mp4'
   rate_tolerance_option=''
   bitrate=''
@@ -167,8 +169,8 @@ convert_handbrake(){
   else
     filter_options=''
   fi
-  echo "nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input \"${input}\" --output \"${output}\""| tee -a "${media_handbrake_log}"
-  nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=$vbv_value:vbv-bufsize=$vbv_value${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input "${input}" --output "${output}"
+  echo "nice ${nice_level} ${handbrake} --optimize --encoder ${ENCODE} --encopts vbv-maxrate=${vbv_value}:vbv-bufsize=${vbv_value}${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input \"${input}\" --output \"${output}\""| tee -a "${media_handbrake_log}"
+  nice ${nice_level} ${handbrake} --optimize --encoder ${ENCODE} --encopts vbv-maxrate=${vbv_value}:vbv-bufsize=${vbv_value}${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input "${input}" --output "${output}" 2> /tmp/handbrake.log
   if [[ $? -eq 0 ]]; then
     rm "${input}" > /dev/null 2>&1
     echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mp4_media_log}"
