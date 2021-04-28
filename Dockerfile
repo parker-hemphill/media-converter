@@ -9,7 +9,7 @@ ENV PUID=${PUID:-1000} \
     MEDIA_SERVER=${MEDIA_SERVER:-no}
 
 # set container labels
-LABEL build_version="Media-Converter, Version: 2.1.4 Build-date: 2021-Mar-28" maintainer="parker-hemphill"
+LABEL build_version="Media-Converter, Version: 2.1.8 Build-date: 2021-Apr-28" maintainer="parker-hemphill"
 
 # Copy Handbrake and media-info compile script to /tmp
 COPY compile_binaries /tmp/
