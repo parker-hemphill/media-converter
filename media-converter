@@ -11,11 +11,11 @@ container_setup(){
   add_user "${PUID}" "${PGID}"
   set_timezone "${TZ}"
   check_mount
-  for directory in failed_dir log_dir media_base movie_add tv_add movie_convert tv_convert movie_import tv_import; do
+  for directory in log_dir media_base movie_add tv_add movie_convert tv_convert movie_import tv_import; do
     create_directory "${!directory}"
   done
   setup_logfile
-  nohup bash -c 'touch /var/tmp/.media-converter.uptime'
+  touch /var/tmp/.media-converter.uptime
   print_priority_info
 }
 
@@ -24,7 +24,7 @@ media_converter_loop(){
     sudo -u media bash -c "source /opt/functions; move_media"; \
     sudo -u media bash -c "/opt/convert_media \"${MEDIA_SERVER}\" \"${ENCODE}\" \"MOVIE\""; \
     sudo -u media bash -c "/opt/convert_media \"${MEDIA_SERVER}\" \"${ENCODE}\" \"TV\""; \
-    sleep 60
+    sleep 30
   done
 }
 

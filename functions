@@ -7,9 +7,6 @@
 # Set PATH
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# Location for failed media conversion files
-failed_dir="/media/FAILED"
-
 # Set encode from docker options
 encode=${ENCODE}
 
