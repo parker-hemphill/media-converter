@@ -1,69 +1,5 @@
 #!/bin/bash
 
-source /opt/functions
-
-# Create status messages without logging
-print_error(){ echo -e "${red}[ERROR]: ${1}${clear}"; }
-print_warning(){ echo -e "${yellow}[WARNING]: ${1}${clear}"; }
-print_info(){ echo -e "${white}${1}${clear}"; }
-print_notice(){ echo -e "${white}[NOTICE]: ${1}${clear}"; }
-print_ok(){ echo -e "${green}[OK]: ${1}${clear}"; }
-
-# Generate uptime and container creation time
-get_container_uptime(){
-  container_start=$(stat -c %Y /var/tmp/.media-converter.uptime)
-  current_epoch=$(date +%s)
-  num=$((current_epoch - container_start))
-  min=0
-  hour=0
-  day=0
-  if((num>59));then
-      ((sec=num%60))
-      ((num=num/60))
-      if((num>59));then
-          ((min=num%60))
-          ((num=num/60))
-          if((num>23));then
-            ((hour=num%24))
-            ((day=num/24))
-          else
-            ((hour=num))
-          fi
-      else
-        ((min=num))
-      fi
-  else
-    ((sec=num))
-  fi
-  container_uptime="${day}d ${hour}h ${min}m ${sec}s"
-}
-
-#Set "Movie" or "Movies" in convert count
-movie_grammar(){
-  if [[ ${movie_count} -eq 1 ]]; then
-    echo "There is ${movie_count} Movie"
-  else
-    echo "There are ${movie_count} Movies"
-  fi
-}
-
-#Set "show" or "shows" in convert count
-tv_grammar(){
-  if [[ ${tv_count} -eq 1 ]]; then
-    echo "There is ${tv_count} TV episode"
-  else
-    echo "There are ${tv_count} TV episodes"
-  fi
-}
-
-#Check free space for a device and provide mount point
-check_space(){
-  declare -i full=$(df -h "$1"|tail -1|awk '{print $5}'|tr -d %)
-  (( full < 60 )) && print_ok "${1} is ${full}% full"
-  (( full > 60 )) && (( ${full} < 75 )) && print_warning "${1} is ${full}% full"
-  (( full > 75 )) && print_error "${1} is ${full}% full"
-}
-
 main(){
   clear
   get_container_uptime
@@ -72,14 +8,16 @@ main(){
   check_space "/media"
   declare -i tv_count=$(ls -1 "${tv_convert}" | egrep -v "-converted.mp4|.srt")
   declare -i movie_count=$(ls -1 "${movie_convert}" | egrep -v "-converted.mp4|.srt")
-  print_info "\n$(tv_grammar) waiting to be encoded"
-  print_info "$(movie_grammar) waiting to be encoded\n"
-  [[ $(pgrep ffmpeg) ]] && print_notice "FFMPEG is running"
+  print_info_no_log "\n$(tv_grammar ${tv_count}) waiting to be encoded"
+  print_info_no_log "$(movie_grammar ${movie_count}) waiting to be encoded\n"
+  [[ $(pgrep ffmpeg) ]] && print_notice_no_log "FFMPEG is running"
   if [[ $(pgrep HandBrakeCLI) ]]; then
-    print_notice "HandBrake is converting:\n$(ps -ef|grep -o "\-\-output.*"|sed -e 's/\-\-output \/media\/Complete\/Convert\/.*\///' -e 's/\-converted\.mp4//')"
+    print_notice_no_log "HandBrake is converting:\n$(ps -ef|grep -o "\-\-output.*"|sed -e 's/\-\-output \/media\/Complete\/Convert\/.*\///' -e 's/\-converted\.mp4//')"
   else
-    print_notice "No current encode jobs running"
+    print_notice_no_log "No current encode jobs running"
   fi
 }
+
+source /opt/functions
 
 main

@@ -1,14 +1,12 @@
-#!/bin/bash
-
 ################################################################################
 # Variables                                                                    #
 ################################################################################
 
+# Source docker ENV variables
+. /tmp/container_facts
+
 # Set PATH
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-# Set encode from docker options
-encode=${ENCODE}
 
 # Location to create log files
 readonly log_dir="/media/log"
@@ -18,32 +16,32 @@ readonly mkvlog="${log_dir}/converted-mkv_"
 readonly mp4log="${log_dir}/converted-mp4_"
 readonly failedlog="${log_dir}/FAILED_"
 
+# Location of binaries used by container
+readonly handbrake=/usr/local/bin/HandBrakeCLI
+readonly ffmpeg=/usr/local/bin/ffmpeg
+readonly mediainfo=/usr/bin/mediainfo
+
 # Base directory for media files
-media_base="/media/Complete"
+readonly media_base="/media/Complete"
 
 # Location to check for new media files
-movie_add="${media_base}/Movies"
-tv_add="${media_base}/TVShows"
+readonly movie_add="${media_base}/Movies"
+readonly tv_add="${media_base}/TVShows"
 
 # Location to move media files to for conversion
-movie_convert="${media_base}/Convert/Movies"
-tv_convert="${media_base}/Convert/TVShows"
+readonly movie_convert="${media_base}/Convert/Movies"
+readonly tv_convert="${media_base}/Convert/TVShows"
 
 # Location to move media files to for ingestion by SickChill, CoachPotato, etc
-movie_import="${media_base}/IMPORT/Movies"
-tv_import="${media_base}/IMPORT/TVShows"
-
-# Location of binaries used by container
-handbrake=/usr/local/bin/HandBrakeCLI
-ffmpeg=/usr/local/bin/ffmpeg
-mediainfo=/usr/bin/mediainfo
+readonly movie_import="${media_base}/IMPORT/Movies"
+readonly tv_import="${media_base}/IMPORT/TVShows"
 
 # Set colors for status message
-red='\e[1;31m'
-yellow='\e[1;33m'
-green='\e[1;32m'
-white='\e[1;97m'
-clear='\e[0m'
+readonly red='\e[1;31m'
+readonly yellow='\e[1;33m'
+readonly green='\e[1;32m'
+readonly white='\e[1;97m'
+readonly clear='\e[0m'
 
 ################################################################################
 # Functions                                                                    #
@@ -57,10 +55,15 @@ die(){
 
 # Create status messages
 print_error(){ echo -e "${red}[ERROR]: ${1}${clear}"|tee -a ${log}; }
+print_error_no_log(){ echo -e "${red}[ERROR]: ${1}${clear}"; }
 print_warning(){ echo -e "${yellow}[WARNING]: ${1}${clear}"|tee -a ${log}; }
+print_warning_no_log(){ echo -e "${yellow}[WARNING]: ${1}${clear}"; }
 print_info(){ echo -e "${white}${1}${clear}"|tee -a ${log}; }
+print_info_no_log(){ echo -e "${white}${1}${clear}"; }
 print_notice(){ echo -e "${white}[NOTICE]: ${1}${clear}"|tee -a ${log}; }
+print_notice_no_log(){ echo -e "${white}[NOTICE]: ${1}${clear}"; }
 print_ok(){ echo -e "${green}[OK]: ${1}${clear}"|tee -a ${log}; }
+print_ok_no_log(){ echo -e "${green}[OK]: ${1}${clear}"; }
 
 # Set mod time of dummyfile so we can generate uptime for container
 container_uptime(){
@@ -79,15 +82,15 @@ add_user(){
 
 # Set timezone inside container for logfile entries
 set_timezone(){
-  echo "${TZ}"|tee /etc/timezone
+  echo "${tz}"|tee /etc/timezone
   dpkg-reconfigure -f noninteractive tzdata > /dev/null 2>&1
-  print_info "Timezone set to ${TZ}"
+  print_info "Timezone set to ${tz}"
   print_info "Current date and time inside container: $(date +%b-%d" "%H:%M)"
 }
 
 # Setup logfile
 setup_logfile(){
-  for media_type in TV MOVIE; do
+  for media_type in tv movie; do
     for logfile in mkvlog mp4log failedlog handbrake_log; do
     if [[ ! -f "${!logfile}${media_type}.log" ]]; then
       touch "${!logfile}${media_type}.log"
@@ -123,16 +126,16 @@ create_directory(){
 
 # Print niceness level for logfile
 print_priority_info(){
-  if [[ ${MEDIA_SERVER} == "no" ]]; then
-    print_info "\"MEDIA_SERVER\" variable set to ${MEDIA_SERVER}, leaving default niceness for converter functions"
+  if [[ ${media_server} == "yes" ]]; then
+    print_info "\"MEDIA_SERVER\" variable set to ${media_server}, leaving default niceness for converter functions"
   else
-    print_info "\"MEDIA_SERVER\" variable set to ${MEDIA_SERVER}, lowering niceness for converter functions"
+    print_info "\"MEDIA_SERVER\" variable set to ${media_server}, lowering niceness for converter functions"
   fi
 }
 
 # Set niceness level of encoder actions
 set_priority(){
-  if [[ ${1} == "no" ]]; then
+  if [[ ${1} == "yes" ]]; then
     nice_level='-0'
   else
     nice_level='-15'
@@ -143,13 +146,13 @@ set_priority(){
 # Check if directory passed to function is writeable by \"media\" user"
 directory_writeable(){
   sudo -u media bash -c "source /opt/functions && if [[ ! -w \"${1}\" ]]; then \
-                           print_error \"${1} not writeable by UID ${PUID}\"; \
+                           print_error \"${1} not writeable by UID ${puid}\"; \
                            die; \
                         fi"
 }
 
+# This ignores any files that might be sample media files (TV shows under 50MB in size and Movies under 500MB)
 move_media(){
-  # This ignores any files that might be sample media files (TV shows under 50MB in size and Movies under 500MB)
   if [[ "$(ls -A "${tv_add}")" ]]; then
     find "${tv_add}/" -type f -not -name '*sample*' -size +50M -regex '.*\.\(avi\|mod\|mpg\|mp4\|m4v\|mkv\)' -exec mv {} "${tv_convert}/" \;
   fi
@@ -159,4 +162,247 @@ move_media(){
   # Remove left behind files older than 7 days
   find "${tv_add}/" -ctime +7 -exec rm {} +
   find "${movie_add}/" -ctime +7 -exec rm {} +
+}
+
+# Generate uptime and container creation time
+get_container_uptime(){
+  container_start=$(stat -c %Y /var/tmp/.media-converter.uptime)
+  current_epoch=$(date +%s)
+  num=$((current_epoch - container_start))
+  min=0
+  hour=0
+  day=0
+  if((num>59));then
+      ((sec=num%60))
+      ((num=num/60))
+      if((num>59));then
+          ((min=num%60))
+          ((num=num/60))
+          if((num>23));then
+            ((hour=num%24))
+            ((day=num/24))
+          else
+            ((hour=num))
+          fi
+      else
+        ((min=num))
+      fi
+  else
+    ((sec=num))
+  fi
+  container_uptime="${day}d ${hour}h ${min}m ${sec}s"
+}
+
+# Set "Movie" or "Movies" in convert count
+movie_grammar(){
+  local -r movie_count=${1}
+  if [[ ${movie_count} -eq 1 ]]; then
+    echo "There is ${movie_count} Movie"
+  else
+    echo "There are ${movie_count} Movies"
+  fi
+}
+
+# Set "show" or "shows" in convert count
+tv_grammar(){
+  local -r tv_count=${1}
+  if [[ ${tv_count} -eq 1 ]]; then
+    echo "There is ${tv_count} TV episode"
+  else
+    echo "There are ${tv_count} TV episodes"
+  fi
+}
+
+# Check free space for a device and provide mount point
+check_space(){
+  declare -i full=$(df -h "$1"|tail -1|awk '{print $5}'|tr -d %)
+  (( full < 60 )) && print_ok "${1} is ${full}% full"
+  (( full > 60 )) && (( ${full} < 75 )) && print_warning "${1} is ${full}% full"
+  (( full > 75 )) && print_error "${1} is ${full}% full"
+}
+
+get_media_convert_directory(){
+  if [[ "${1}" == "TV" ]]; then
+    local -r media_convert="${tv_convert}"
+  else
+    local -r media_convert="${movie_convert}"
+  fi
+  echo "${media_convert}"
+}
+
+get_media_import_directory(){
+  if [[ "${1}" == "TV" ]]; then
+    local -r media_import="${tv_import}"
+  else
+    local -r media_import="${movie_import}"
+  fi
+  echo "${media_import}"
+}
+
+# Handle failed conversions by appending "FAILED" to filename and setting moddate to far in the past so it doesn't create conversion loop
+media_failure(){
+  local -r input_file="${1}"
+  local -r media_input_directory="${2}"
+  mv "${media_input_directory}/${input_file}" "${media_input_directory}/FAILED-${input_file}"
+  touch -t 8001031305 "${media_input_directory}/FAILED-${input_file}"
+  print_warning "\"${input_file}\" conversion failed"
+  echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${failed_media_log}"
+  exit 1
+}
+
+# Convert file to MP4 with FFMPEG
+convert_mkv(){
+  local -r input_file="${1}"
+  local -r media_input_directory="${2}"
+  local -r input="${media_input_directory}/${input_file}"
+  local -r output="$(echo "${media_input_directory}/mkv-converted_${input_file}"| sed 's/....$/\.mp4/')"
+  # Remove previous "output" file since it's an incomplete conversion from container shutdown
+  if [[ -f "${output}" ]]; then
+    rm "${output}"
+  fi
+  nice ${nice_level} ${ffmpeg} -threads 4 -i "${input}" -codec copy "${output}"
+  if [[ $? -eq 0 ]]; then
+    print_info "FFMPEG converted \"${input}\""
+    rm "${input}"
+    echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mkv_media_log}"
+    mv "${output}" "$(echo "${input}"| sed 's/....$/\.mp4/')"
+    exit 0
+  else
+    print_error "FFMPEG conversion of \"${input}\" failed"
+    media_failure "${input_file}" "${media_input_directory}"
+    die
+  fi
+}
+
+convert_handbrake(){
+  local -r input_file="${1}"
+  local -r media_input_directory="${2}"
+  local -r media_output_directory="${3}"
+  local -r input="${media_input_directory}/${input_file}"
+  local -r output="$(echo "${media_input_directory}/${input_file}"| sed 's/....$/-converted\.mp4/')"
+  # Remove existing "converted" files which are leftovers from previous container shutdowns
+  if [[ -f "${output}" ]]; then
+    rm "${output}"
+  fi
+  container_format='mp4'
+  rate_tolerance_option=''
+  bitrate=''
+  rate_factor=''
+  frame_rate_options=''
+  ac3_bitrate='384'
+  crop='0:0:0:0'
+  readonly width="$(${mediainfo} --Inform='Video;%Width%' "${input}")"
+  readonly height="$(${mediainfo} --Inform='Video;%Height%' "${input}")"
+  if ((width > 1280)) || ((height > 720)); then
+    vbv_value='17500'
+    max_bitrate='4000'
+    size_options='--maxWidth 1280 --maxHeight 720 '
+  elif ((width > 720)) || ((height > 576)); then
+    vbv_value='17500'
+    max_bitrate='4000'
+  else
+    vbv_value='12500'
+    if ((height > 480)); then
+      max_bitrate='1800'
+    else
+      max_bitrate='1500'
+    fi
+  fi
+  if [ "${rate_factor}" ]; then
+    rate_control_options="--quality ${rate_factor}"
+  else
+    rate_tolerance_option=':ratetol=inf'
+    if [ "${bitrate}" ]; then
+      if ((bitrate > vbv_value)); then
+        bitrate="${vbv_value}"
+      fi
+    else
+      readonly min_bitrate="$((max_bitrate / 2))"
+      bitrate="$(${mediainfo} --Inform='Video;%BitRate%' "${input}")"
+      if [ ! "$bitrate" ]; then
+        bitrate="$(${mediainfo} --Inform='General;%OverallBitRate%' "${input}")"
+        bitrate="$(((bitrate / 10) * 9))"
+      fi
+      if [ "${bitrate}" ]; then
+        bitrate="$(((bitrate / 5) * 4))"
+        bitrate="$((bitrate / 1000))"
+        bitrate="$(((bitrate / 100) * 100))"
+        if ((bitrate > max_bitrate)); then
+          bitrate="${max_bitrate}"
+        elif ((bitrate < min_bitrate)); then
+          bitrate="${min_bitrate}"
+        fi
+      else
+        bitrate="${min_bitrate}"
+      fi
+    fi
+    rate_control_options="--vb ${bitrate}"
+  fi
+  frame_rate="$(${mediainfo} --Inform='Video;%FrameRate_Original%' "${input}")"
+  if [ ! "${frame_rate}" ]; then
+    frame_rate="$(${mediainfo} --Inform='Video;%FrameRate%' "${input}")"
+  fi
+  if [ ! "${frame_rate_options}" ]; then
+    if [ "${frame_rate}" == '29.970' ]; then
+      frame_rate_options='--rate 23.976'
+    else
+      frame_rate_options='--rate 30 --pfr'
+    fi
+  fi
+  readonly audio_channels="$(${mediainfo} --Inform='Audio;%Channels%' "${input}" | sed 's/^\([0-9]\).*$/\1/')"
+  readonly audio_format="$(${mediainfo} --Inform='General;%Audio_Format_List%' "${input}" | sed 's| /.*||')"
+  if [ "${ac3_bitrate}" ] && ((audio_channels > 2)); then
+    readonly audio_bitrate="$(${mediainfo} --Inform='Audio;%BitRate%' "${input}")"
+    if [ "${audio_format}" == 'AC-3' ] && ((audio_bitrate <= (ac3_bitrate * 1000))); then
+      if [ "${container_format}" == 'mp4' ]; then
+        audio_options='--aencoder ca_aac,copy:ac3'
+      else
+        audio_options='--aencoder copy:ac3'
+      fi
+    elif [ "${container_format}" == 'mp4' ]; then
+      audio_options="--aencoder ca_aac,ac3 --ab ,${ac3_bitrate}"
+    else
+      audio_options="--aencoder ac3 --ab ${ac3_bitrate}"
+    fi
+  elif [ "${audio_format}" == 'AAC' ]; then
+    audio_options='--aencoder copy:aac'
+  else
+    audio_options=''
+  fi
+  if [ "${frame_rate}" == '29.970' ]; then
+    filter_options='--detelecine'
+  else
+    filter_options=''
+  fi
+  echo "nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=${vbv_value}:vbv-bufsize=${vbv_value}${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input \"${input}\" --output \"${output}\""| tee -a "${media_handbrake_log}"
+  nice ${nice_level} ${handbrake} --optimize --encoder ${encode} --encopts vbv-maxrate=${vbv_value}:vbv-bufsize=${vbv_value}${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input "${input}" --output "${output}"
+  if [[ $? -eq 0 ]]; then
+    rm "${input}" > /dev/null 2>&1
+    echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mp4_media_log}"
+    mv "${output}" "${media_output_directory}/${input_file}"
+  else
+    media_failure "${input_file}" "${media_input_directory}"
+    die
+  fi
+}
+
+container_setup(){
+  add_user "${puid}" "${pgid}"
+  set_timezone "${tz}"
+  check_mount
+  for directory in log_dir media_base movie_add tv_add movie_convert tv_convert movie_import tv_import; do
+    create_directory "${!directory}"
+  done
+  setup_logfile
+  touch /var/tmp/.media-converter.uptime
+  print_priority_info
+}
+
+media_converter_loop(){
+  while true; do
+    sudo -u media bash -c "source /opt/functions && move_media"; \
+    sudo -u media bash -c "/usr/local/bin/convert_media \"${media_server}\" \"${encode}\" \"TV\""; \
+    sudo -u media bash -c "/usr/local/bin/convert_media \"${media_server}\" \"${encode}\" \"MOVIE\""; \
+    sleep 30
+  done
 }

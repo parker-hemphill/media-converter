@@ -1,177 +1,5 @@
 #!/bin/bash
 
-source /opt/functions
-
-MEDIA_SERVER="${1}"
-ENCODE="${2}"
-MEDIA_TYPE="${3}"
-
-# Location of binaries used by container
-handbrake=/usr/local/bin/HandBrakeCLI
-ffmpeg=/usr/local/bin/ffmpeg
-mediainfo=/usr/bin/mediainfo
-
-# Set niceness (Priority) of conversion process
-readonly nice_level=$(set_priority "${MEDIA_SERVER}")
-
-get_media_convert_directory(){
-  if [[ "${1}" == "TV" ]]; then
-    echo "${tv_convert}"
-  else
-    echo "${movie_convert}"
-  fi
-}
-
-get_media_import_directory(){
-  if [[ "${1}" == "TV" ]]; then
-    echo "${tv_import}"
-  else
-    echo "${movie_import}"
-  fi
-}
-
-media_failure(){
-  local -r input_file="${1}"
-  local -r media_input_directory="${2}"
-  mv "${media_input_directory}/${input_file}" "${media_input_directory}/FAILED-${input_file}"
-  touch -t 8001031305 "${media_input_directory}/FAILED-${input_file}"
-  print_warning "\"${input_file}\" conversion failed"
-  echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${failed_media_log}"
-  exit 1
-}
-
-convert_mkv(){
-  # Convert file to MP4 with FFMPEG
-  local -r input_file="${1}"
-  local -r media_input_directory="${2}"
-  local -r input="${media_input_directory}/${input_file}"
-  local -r output="$(echo "${media_input_directory}/mkv-converted_${input_file}"| sed 's/....$/\.mp4/')"
-  # Remove previous "output" file since it's an incomplete conversion from container shutdown
-  if [[ -f "${output}" ]]; then
-    rm "${output}"
-  fi
-  nice ${nice_level} ${ffmpeg} -threads 4 -i "${input}" -codec copy "${output}"
-  if [[ $? -eq 0 ]]; then
-    print_info "FFMPEG converted \"${input}\""
-    rm "${input}"
-    echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mkv_media_log}"
-    mv "${output}" "$(echo "${input}"| sed 's/....$/\.mp4/')"
-    exit 0
-  else
-    print_error "FFMPEG conversion of \"${input}\" failed"
-    media_failure "${input_file}" "${media_input_directory}"
-    die
-  fi
-}
-
-convert_handbrake(){
-  local -r input_file="${1}"
-  local -r media_input_directory="${2}"
-  local -r media_output_directory="${3}"
-  local -r input="${media_input_dir}/${input_file}"
-  local -r output="$(echo "${media_input_dir}/${input_file}"| sed 's/....$/-converted\.mp4/')"
-  container_format='mp4'
-  rate_tolerance_option=''
-  bitrate=''
-  rate_factor=''
-  frame_rate_options=''
-  ac3_bitrate='384'
-  crop='0:0:0:0'
-  readonly width="$(${mediainfo} --Inform='Video;%Width%' "${input}")"
-  readonly height="$(${mediainfo} --Inform='Video;%Height%' "${input}")"
-  if ((width > 1280)) || ((height > 720)); then
-    vbv_value='17500'
-    max_bitrate='4000'
-    size_options='--maxWidth 1280 --maxHeight 720 '
-  elif ((width > 720)) || ((height > 576)); then
-    vbv_value='17500'
-    max_bitrate='4000'
-  else
-    vbv_value='12500'
-    if ((height > 480)); then
-      max_bitrate='1800'
-    else
-      max_bitrate='1500'
-    fi
-  fi
-  if [ "${rate_factor}" ]; then
-    rate_control_options="--quality ${rate_factor}"
-  else
-    rate_tolerance_option=':ratetol=inf'
-    if [ "${bitrate}" ]; then
-      if ((bitrate > vbv_value)); then
-        bitrate="${vbv_value}"
-      fi
-    else
-      readonly min_bitrate="$((max_bitrate / 2))"
-      bitrate="$(${mediainfo} --Inform='Video;%BitRate%' "${input}")"
-      if [ ! "$bitrate" ]; then
-        bitrate="$(${mediainfo} --Inform='General;%OverallBitRate%' "${input}")"
-        bitrate="$(((bitrate / 10) * 9))"
-      fi
-      if [ "${bitrate}" ]; then
-        bitrate="$(((bitrate / 5) * 4))"
-        bitrate="$((bitrate / 1000))"
-        bitrate="$(((bitrate / 100) * 100))"
-        if ((bitrate > max_bitrate)); then
-          bitrate="${max_bitrate}"
-        elif ((bitrate < min_bitrate)); then
-          bitrate="${min_bitrate}"
-        fi
-      else
-        bitrate="${min_bitrate}"
-      fi
-    fi
-    rate_control_options="--vb ${bitrate}"
-  fi
-  frame_rate="$(${mediainfo} --Inform='Video;%FrameRate_Original%' "${input}")"
-  if [ ! "${frame_rate}" ]; then
-    frame_rate="$(${mediainfo} --Inform='Video;%FrameRate%' "${input}")"
-  fi
-  if [ ! "${frame_rate_options}" ]; then
-    if [ "${frame_rate}" == '29.970' ]; then
-      frame_rate_options='--rate 23.976'
-    else
-      frame_rate_options='--rate 30 --pfr'
-    fi
-  fi
-  readonly audio_channels="$(${mediainfo} --Inform='Audio;%Channels%' "${input}" | sed 's/^\([0-9]\).*$/\1/')"
-  readonly audio_format="$(${mediainfo} --Inform='General;%Audio_Format_List%' "${input}" | sed 's| /.*||')"
-  if [ "${ac3_bitrate}" ] && ((audio_channels > 2)); then
-    readonly audio_bitrate="$(${mediainfo} --Inform='Audio;%BitRate%' "${input}")"
-    if [ "${audio_format}" == 'AC-3' ] && ((audio_bitrate <= (ac3_bitrate * 1000))); then
-      if [ "${container_format}" == 'mp4' ]; then
-        audio_options='--aencoder ca_aac,copy:ac3'
-      else
-        audio_options='--aencoder copy:ac3'
-      fi
-    elif [ "${container_format}" == 'mp4' ]; then
-      audio_options="--aencoder ca_aac,ac3 --ab ,${ac3_bitrate}"
-    else
-      audio_options="--aencoder ac3 --ab ${ac3_bitrate}"
-    fi
-  elif [ "${audio_format}" == 'AAC' ]; then
-    audio_options='--aencoder copy:aac'
-  else
-    audio_options=''
-  fi
-  if [ "${frame_rate}" == '29.970' ]; then
-    filter_options='--detelecine'
-  else
-    filter_options=''
-  fi
-  echo "nice ${nice_level} ${handbrake} --optimize --encoder ${ENCODE} --encopts vbv-maxrate=${vbv_value}:vbv-bufsize=${vbv_value}${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input \"${input}\" --output \"${output}\""| tee -a "${media_handbrake_log}"
-  nice ${nice_level} ${handbrake} --optimize --encoder ${ENCODE} --encopts vbv-maxrate=${vbv_value}:vbv-bufsize=${vbv_value}${rate_tolerance_option} ${rate_control_options} ${frame_rate_options} ${audio_options} --crop ${crop} ${size_options} ${filter_options} --input "${input}" --output "${output}" 2> /tmp/handbrake.log
-  if [[ $? -eq 0 ]]; then
-    rm "${input}" > /dev/null 2>&1
-    echo "$(date +%Y-%m-%d" "%H:%M): ${input_file}" >> "${mp4_media_log}"
-    mv "${output}" "${media_output_dir}/${input_file}"
-  else
-    media_failure "${input_file}" "${media_input_directory}"
-    die
-  fi
-}
-
 main(){
   readonly media_convert_directory=$(get_media_convert_directory "${MEDIA_TYPE}")
   readonly media_import_directory=$(get_media_import_directory "${MEDIA_TYPE}")
@@ -180,19 +8,27 @@ main(){
   readonly failed_media_log="${failedlog}${MEDIA_TYPE,,}.log"
   readonly media_handbrake_log="${handbrake_log}${MEDIA_TYPE,,}.log"
   # Remove previous "output" file since it's an incomplete conversion from container shutdown
-  rm "${media_convert_directory}/*-converted.mp4" > /dev/null 2>&1
   if [[ $(find "${media_convert_directory}" -newermt $(date +%Y-%m-%d -d '20 year ago') -type f) ]]; then
     local -r input_file=$(ls -1t "${media_convert_directory}"|head -1)
   else
     exit 0
   fi
-  local -r input_extension="${input^^}"
+  local -r input_extension="${input_file^^}"
   if [[ "${input_extension: -4}" == ".MKV" ]]; then
-    convert_mkv "${input}" "${media_convert_directory}"
+    convert_mkv "${input_file}" "${media_convert_directory}"
   else
-    convert_handbrake "${input}" "${media_convert_directory}" "${media_import_directory}"
+    convert_handbrake "${input_file}" "${media_convert_directory}" "${media_import_directory}"
   fi
   exit 0
 }
+
+source /opt/functions
+
+MEDIA_SERVER="${1}"
+ENCODE="${2}"
+MEDIA_TYPE="${3}"
+
+# Set niceness (Priority) of conversion process
+declare -r nice_level=$(set_priority "${MEDIA_SERVER}")
 
 main

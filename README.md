@@ -24,7 +24,7 @@
  * Removed Growl since it is no longer actively developed for macOS
 * The option to choose h264 or HVEC (h265) has been added to the image, simply pass **"- ENCODE=<x264|x265>"** to environment for container (**Defaults to h264 if variable isn't set**) 
 * ~~All files converted are added to a logfile located at **\<volume\>/Logs/converted.log**~~
- * UPDATE 2.1.5: Log files are now created under **\<volume\>/logs** and contain individual logfiles for MKV, MP4, FAILED, and handbrake command used to convert each media file
+ * UPDATE 2.1.5: Log files are now created under **\<volume\>/logs** and contain individual logfiles for MKV, MP4, and handbrake command used to convert each media file
 * Upon start-up container will check if '\<volume\>' is writeable by PUID and create the needed directories if they don't exist
 * Container defaults to uid/gid 1000 if PUID/PGID aren't specified in the environment settings
 * The easiest way to get up and running is to start the image, then go into the setup of your download client (SickChill/Deluge, etc) and set it to place completed media in `'<volume>/Complete/<TVShows|Movies>'`
@@ -37,6 +37,7 @@
 * In this example I use `'/media/media'` as the mount point on my server and UID "1000" to map my primary user to the container.  You can get the UID/GID of desired user by running `id <USER_NAME>`.  I.E. `id plex`
 * Change "TZ" to match your desired timezone.  A vaild list can be found at https://www.wikiwand.com/en/List_of_tz_database_time_zones under the "TZ database name" column.  Default is "America/New_York"
 * Change "ENCODE" to `'x264'` or `'x265'` to use h264 (default if option isn't set) or h265 (HVEC)
+* If this is purely a host for converting media you can add the enviromental variable "MEDIA_SERVER=no" to give more processing power to the HandBrakeCLI process (Defaults to yes and normal priority if not set)
 ```
 #docker-compose.yaml
 version: "3"

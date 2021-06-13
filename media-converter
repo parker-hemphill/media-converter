@@ -1,36 +1,16 @@
 #!/bin/bash
 
-source /opt/functions
-export PUID=${PUID}
-export PGID=${PGID}
-export TZ=${TZ}
-export ENCODE=${ENCODE}
-export MEDIA_SERVER=${MEDIA_SERVER}
-
-container_setup(){
-  add_user "${PUID}" "${PGID}"
-  set_timezone "${TZ}"
-  check_mount
-  for directory in log_dir media_base movie_add tv_add movie_convert tv_convert movie_import tv_import; do
-    create_directory "${!directory}"
-  done
-  setup_logfile
-  touch /var/tmp/.media-converter.uptime
-  print_priority_info
-}
-
-media_converter_loop(){
-  while true; do
-    sudo -u media bash -c "source /opt/functions; move_media"; \
-    sudo -u media bash -c "/opt/convert_media \"${MEDIA_SERVER}\" \"${ENCODE}\" \"MOVIE\""; \
-    sudo -u media bash -c "/opt/convert_media \"${MEDIA_SERVER}\" \"${ENCODE}\" \"TV\""; \
-    sleep 30
-  done
-}
-
 main(){
   container_setup
   media_converter_loop
 }
+
+echo "puid=${PUID}" > /tmp/container_facts
+echo "pgid=${PGID}" >> /tmp/container_facts
+echo "tz=${TZ}" >> /tmp/container_facts
+echo "encode=${ENCODE}" >> /tmp/container_facts
+echo "media_server=${MEDIA_SERVER}" >> /tmp/container_facts
+
+source /opt/functions
 
 main
